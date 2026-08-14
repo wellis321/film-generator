@@ -16,8 +16,8 @@
 <div class="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
 	<header class="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur">
 		<div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-			<a href="/" class="flex items-center gap-2 text-lg font-bold tracking-tight">
-				<span class="text-2xl">🎡</span>
+			<a href="/" class="flex items-center gap-2.5 text-2xl font-bold tracking-tight">
+				<span class="text-4xl">🎡</span>
 				<span
 					>Regret<span class="text-amber-400">ometer</span></span
 				>
