@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { posterUrl } from '$lib/poster';
 	import type { PageData } from './$types';
@@ -100,56 +101,76 @@
 {:else}
 	<div class="mt-8 space-y-6">
 		{#each data.movies as m (m.id)}
-			<a
-				href="/movie/{m.id}"
-				class="block rounded-2xl border border-neutral-800 bg-neutral-900 p-5 transition hover:border-neutral-700"
+			<div
+				class="relative rounded-2xl border border-neutral-800 bg-neutral-900 transition hover:border-neutral-700"
 			>
-				<div class="flex flex-col gap-5 sm:flex-row">
-					{#if posterUrl(m.posterPath)}
-						<img
-							src={posterUrl(m.posterPath)}
-							alt=""
-							class="h-52 w-36 flex-shrink-0 self-start rounded-lg object-cover shadow-lg"
-						/>
-					{/if}
+				<form
+					method="POST"
+					action="/movie/{m.id}?/unwatch"
+					use:enhance
+					onsubmit={(e) => {
+						if (!confirm(`Remove "${m.title}" from your watched list?`)) e.preventDefault();
+					}}
+					class="absolute top-3 right-3 z-10"
+				>
+					<button
+						type="submit"
+						aria-label={`Remove ${m.title} from watched`}
+						title="Not actually watched — remove from list"
+						class="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-950/80 text-neutral-400 transition hover:bg-red-500/20 hover:text-red-400"
+					>
+						✕
+					</button>
+				</form>
 
-					<div class="min-w-0 flex-1">
-						<div class="flex flex-wrap items-baseline justify-between gap-2">
-							<h2 class="text-xl font-bold text-neutral-50">{m.title}</h2>
-							{#if m.ourRating}
-								<span class="text-lg font-bold whitespace-nowrap text-amber-400"
-									>{m.ourRating}/10 (us)</span
-								>
-							{/if}
-						</div>
-						<p class="text-sm text-neutral-500">
-							{m.year ?? ''}
-							{m.mediaType === 'tv' ? '· TV Series' : ''}
-							{#if m.watchedAt}
-								· watched {new Date(m.watchedAt).toLocaleDateString()}
-							{/if}
-						</p>
+				<a href="/movie/{m.id}" class="block p-5">
+					<div class="flex flex-col gap-5 sm:flex-row">
+						{#if posterUrl(m.posterPath)}
+							<img
+								src={posterUrl(m.posterPath)}
+								alt=""
+								class="h-52 w-36 flex-shrink-0 self-start rounded-lg object-cover shadow-lg"
+							/>
+						{/if}
 
-						<p class="mt-3 line-clamp-2 text-sm text-neutral-400">
-							{m.synopsis || 'No synopsis available.'}
-						</p>
-
-						<p class="mt-3 text-xs text-neutral-500">
-							<span class="font-medium text-neutral-500">Others say</span>
-							{m.tmdbRating ? `${m.tmdbRating}/10 on TMDB` : 'no rating available'}
-						</p>
-
-						<div class="mt-3 border-l-2 border-amber-400 bg-amber-400/[0.07] py-2 pl-3">
-							<p class="text-[0.65rem] font-bold tracking-widest text-amber-400 uppercase">
-								We say
+						<div class="min-w-0 flex-1">
+							<div class="flex flex-wrap items-baseline justify-between gap-2 pr-8">
+								<h2 class="text-xl font-bold text-neutral-50">{m.title}</h2>
+								{#if m.ourRating}
+									<span class="text-lg font-bold whitespace-nowrap text-amber-400"
+										>{m.ourRating}/10 (us)</span
+									>
+								{/if}
+							</div>
+							<p class="text-sm text-neutral-500">
+								{m.year ?? ''}
+								{m.mediaType === 'tv' ? '· TV Series' : ''}
+								{#if m.watchedAt}
+									· watched {new Date(m.watchedAt).toLocaleDateString()}
+								{/if}
 							</p>
-							<p class="mt-0.5 text-sm text-neutral-100">
-								{m.ourReview || 'No review yet.'}
+
+							<p class="mt-3 line-clamp-2 text-sm text-neutral-400">
+								{m.synopsis || 'No synopsis available.'}
 							</p>
+
+							<p class="mt-3 text-xs text-neutral-500">
+								<span class="font-medium text-neutral-500">Others say</span>
+								{m.tmdbRating ? `${m.tmdbRating}/10 on TMDB` : 'no rating available'}
+							</p>
+
+							<div class="mt-3 border-l-2 border-amber-400 bg-amber-400/[0.07] py-2 pl-3">
+								<p class="text-[0.65rem] font-bold tracking-widest text-amber-400 uppercase">
+									We say
+								</p>
+								<p class="mt-0.5 text-sm text-neutral-100">
+									{m.ourReview || 'No review yet.'}
+								</p>
+							</div>
 						</div>
 					</div>
-				</div>
-			</a>
+				</a>
+			</div>
 		{/each}
 	</div>
 {/if}
