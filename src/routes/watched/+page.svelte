@@ -1,8 +1,37 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { posterUrl } from '$lib/poster';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	const sortOptions = [
+		{ value: 'watched_desc', label: 'Recently watched' },
+		{ value: 'watched_asc', label: 'Watched longest ago' },
+		{ value: 'our_rating_desc', label: 'Our rating: high to low' },
+		{ value: 'our_rating_asc', label: 'Our rating: low to high' },
+		{ value: 'tmdb_rating_desc', label: 'TMDB rating: high to low' },
+		{ value: 'tmdb_rating_asc', label: 'TMDB rating: low to high' },
+		{ value: 'title_asc', label: 'Title: A–Z' },
+		{ value: 'title_desc', label: 'Title: Z–A' }
+	];
+
+	const minRatingOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+	const hasActiveFilters = $derived(
+		data.mediaType !== 'all' || data.minRating !== null || data.sort !== 'watched_desc'
+	);
+
+	function updateParam(key: string, value: string) {
+		const params = new URLSearchParams(page.url.searchParams);
+		if (value) {
+			params.set(key, value);
+		} else {
+			params.delete(key);
+		}
+		goto(`?${params}`, { keepFocus: true, noScroll: true });
+	}
 </script>
 
 <svelte:head>
@@ -12,9 +41,61 @@
 <h1 class="text-3xl font-black text-neutral-50 sm:text-4xl">Movies we've suffered through</h1>
 <p class="mt-2 text-neutral-400">Synopsis, what others say, and what we actually think.</p>
 
+<div class="mt-6 flex flex-wrap items-center gap-3 text-sm">
+	<label class="flex items-center gap-2 text-neutral-400">
+		Sort
+		<select
+			value={data.sort}
+			onchange={(e) => updateParam('sort', e.currentTarget.value)}
+			class="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 focus:border-amber-400 focus:outline-none"
+		>
+			{#each sortOptions as opt (opt.value)}
+				<option value={opt.value}>{opt.label}</option>
+			{/each}
+		</select>
+	</label>
+
+	<label class="flex items-center gap-2 text-neutral-400">
+		Show
+		<select
+			value={data.mediaType}
+			onchange={(e) => updateParam('type', e.currentTarget.value === 'all' ? '' : e.currentTarget.value)}
+			class="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 focus:border-amber-400 focus:outline-none"
+		>
+			<option value="all">Movies & TV</option>
+			<option value="movie">Movies only</option>
+			<option value="tv">TV only</option>
+		</select>
+	</label>
+
+	<label class="flex items-center gap-2 text-neutral-400">
+		Our rating
+		<select
+			value={data.minRating ?? ''}
+			onchange={(e) => updateParam('minRating', e.currentTarget.value)}
+			class="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 focus:border-amber-400 focus:outline-none"
+		>
+			<option value="">Any</option>
+			{#each minRatingOptions as n (n)}
+				<option value={n}>{n}+</option>
+			{/each}
+		</select>
+	</label>
+
+	{#if hasActiveFilters}
+		<a href="/watched" class="text-neutral-500 underline hover:text-neutral-300">Reset</a>
+	{/if}
+</div>
+
 {#if data.movies.length === 0}
 	<p class="mt-10 text-neutral-500">
-		Nothing watched yet — <a href="/" class="text-amber-400 hover:underline">go spin the wheel</a>.
+		{#if hasActiveFilters}
+			No watched movies match these filters — <a href="/watched" class="text-amber-400 hover:underline"
+				>reset them</a
+			>.
+		{:else}
+			Nothing watched yet — <a href="/" class="text-amber-400 hover:underline">go spin the wheel</a>.
+		{/if}
 	</p>
 {:else}
 	<div class="mt-8 space-y-6">
