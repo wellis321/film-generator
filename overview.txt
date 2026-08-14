@@ -1,0 +1,7 @@
+my daughhter and i like to watch movies that other people seem to love but turn out to be awful to us. Every Harry potter film was rotten and weird and had terrible plots and lots of horrible things happen in them. We end up not remembering a thing about them twenty minutes after havig watched them and in utter amazement that so many people love them so much.
+
+Not just Harrry potter - Twighlight, Wolverine, Star Wars ( we thought two films were actually the same story and one was racist), X-men among others.
+
+I want to build a movies selector site that works like a wheel of fortune spiiner where we press a putton and a movie randommly gets generated from a large list of ones that are like the ones I've entioned - Lord of the Rings, Spider man, Bat man, Marvel,maybe even a series where we know we wont like it like Friends, that science one where they live together and a woman lives across the hall, and many many more also indiana jones, etc..
+
+We want to be able to hhave a movei page where we can see the synopsis and our review. Also a page of all the movies we've watched with a synopsis , what others say and what we say,
