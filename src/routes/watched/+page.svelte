@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { posterUrl } from '$lib/poster';
+	import { ratingLabels } from '$lib/rating-labels';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -42,13 +43,15 @@
 <h1 class="text-3xl font-black text-neutral-50 sm:text-4xl">Movies we've suffered through</h1>
 <p class="mt-2 text-neutral-400">Synopsis, what others say, and what we actually think.</p>
 
-<div class="mt-6 flex flex-wrap items-center gap-3 text-sm">
-	<label class="flex items-center gap-2 text-neutral-400">
-		Sort
+<div class="mt-6 flex flex-wrap items-center gap-2.5">
+	<label
+		class="flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 py-1.5 pr-3 pl-4 transition hover:border-amber-400/40"
+	>
+		<span class="text-[0.65rem] font-bold tracking-widest text-amber-400 uppercase">Sort</span>
 		<select
 			value={data.sort}
 			onchange={(e) => updateParam('sort', e.currentTarget.value)}
-			class="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 focus:border-amber-400 focus:outline-none"
+			class="cursor-pointer appearance-none bg-transparent bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2020%2020%22%20fill=%22none%22%20stroke=%22%23fbbf24%22%20stroke-width=%222%22%3E%3Cpath%20d=%22M5%208l5%205%205-5%22/%3E%3C/svg%3E')] bg-[right_0_center] bg-no-repeat pr-5 text-sm font-medium text-neutral-100 focus:outline-none"
 		>
 			{#each sortOptions as opt (opt.value)}
 				<option value={opt.value}>{opt.label}</option>
@@ -56,12 +59,14 @@
 		</select>
 	</label>
 
-	<label class="flex items-center gap-2 text-neutral-400">
-		Show
+	<label
+		class="flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 py-1.5 pr-3 pl-4 transition hover:border-amber-400/40"
+	>
+		<span class="text-[0.65rem] font-bold tracking-widest text-amber-400 uppercase">Show</span>
 		<select
 			value={data.mediaType}
 			onchange={(e) => updateParam('type', e.currentTarget.value === 'all' ? '' : e.currentTarget.value)}
-			class="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 focus:border-amber-400 focus:outline-none"
+			class="cursor-pointer appearance-none bg-transparent bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2020%2020%22%20fill=%22none%22%20stroke=%22%23fbbf24%22%20stroke-width=%222%22%3E%3Cpath%20d=%22M5%208l5%205%205-5%22/%3E%3C/svg%3E')] bg-[right_0_center] bg-no-repeat pr-5 text-sm font-medium text-neutral-100 focus:outline-none"
 		>
 			<option value="all">Movies & TV</option>
 			<option value="movie">Movies only</option>
@@ -69,12 +74,14 @@
 		</select>
 	</label>
 
-	<label class="flex items-center gap-2 text-neutral-400">
-		Our rating
+	<label
+		class="flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 py-1.5 pr-3 pl-4 transition hover:border-amber-400/40"
+	>
+		<span class="text-[0.65rem] font-bold tracking-widest text-amber-400 uppercase">Rating</span>
 		<select
 			value={data.minRating ?? ''}
 			onchange={(e) => updateParam('minRating', e.currentTarget.value)}
-			class="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 focus:border-amber-400 focus:outline-none"
+			class="cursor-pointer appearance-none bg-transparent bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2020%2020%22%20fill=%22none%22%20stroke=%22%23fbbf24%22%20stroke-width=%222%22%3E%3Cpath%20d=%22M5%208l5%205%205-5%22/%3E%3C/svg%3E')] bg-[right_0_center] bg-no-repeat pr-5 text-sm font-medium text-neutral-100 focus:outline-none"
 		>
 			<option value="">Any</option>
 			{#each minRatingOptions as n (n)}
@@ -84,7 +91,11 @@
 	</label>
 
 	{#if hasActiveFilters}
-		<a href="/watched" class="text-neutral-500 underline hover:text-neutral-300">Reset</a>
+		<a
+			href="/watched"
+			class="rounded-full px-3 py-1.5 text-sm text-neutral-500 underline decoration-neutral-700 transition hover:text-amber-400 hover:decoration-amber-400"
+			>Reset</a
+		>
 	{/if}
 </div>
 
@@ -137,7 +148,9 @@
 							<div class="flex flex-wrap items-baseline justify-between gap-2 pr-8">
 								<h2 class="text-xl font-bold text-neutral-50">{m.title}</h2>
 								{#if m.ourRating}
-									<span class="text-lg font-bold whitespace-nowrap text-amber-400"
+									<span
+										class="text-lg font-bold whitespace-nowrap text-amber-400"
+										title={ratingLabels[m.ourRating]}
 										>{m.ourRating}/10 (us)</span
 									>
 								{/if}

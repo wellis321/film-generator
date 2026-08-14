@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { posterUrl } from '$lib/poster';
 	import { randomPlaceholder } from '$lib/review-placeholders';
+	import { ratingLabels } from '$lib/rating-labels';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -9,6 +10,7 @@
 	let ourRating = $state(data.movie.ourRating ?? 5);
 	let ourReview = $state(data.movie.ourReview ?? '');
 	const reviewPlaceholder = randomPlaceholder();
+	const ratingLabel = $derived(ratingLabels[ourRating]);
 </script>
 
 <svelte:head>
@@ -90,6 +92,7 @@
 			<div>
 				<label for="ourRating" class="block text-sm text-neutral-400">
 					Our rating: <span class="font-semibold text-amber-400">{ourRating}/10</span>
+					<span class="text-neutral-500">— {ratingLabel}</span>
 				</label>
 				<input
 					id="ourRating"
