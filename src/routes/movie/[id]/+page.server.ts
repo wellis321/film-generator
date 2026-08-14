@@ -55,5 +55,23 @@ export const actions: Actions = {
 			.where(eq(movie.id, id));
 
 		return { success: true };
+	},
+
+	exclude: async ({ params }) => {
+		const id = Number(params.id);
+		if (!Number.isInteger(id)) error(404, 'Movie not found');
+
+		await db.update(movie).set({ excluded: true }).where(eq(movie.id, id));
+
+		return { success: true };
+	},
+
+	include: async ({ params }) => {
+		const id = Number(params.id);
+		if (!Number.isInteger(id)) error(404, 'Movie not found');
+
+		await db.update(movie).set({ excluded: false }).where(eq(movie.id, id));
+
+		return { success: true };
 	}
 };

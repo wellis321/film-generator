@@ -31,12 +31,32 @@
 			{data.movie.mediaType === 'tv' ? '· TV Series' : ''}
 		</p>
 
-		{#if data.movie.watched}
-			<span
-				class="mt-3 inline-block rounded-full bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-400"
-				>✓ Watched</span
-			>
-		{/if}
+		<div class="mt-3 flex flex-wrap items-center gap-3">
+			{#if data.movie.watched}
+				<span
+					class="inline-block rounded-full bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-400"
+					>✓ Watched</span
+				>
+			{/if}
+
+			{#if data.movie.excluded}
+				<span
+					class="inline-block rounded-full bg-neutral-800 px-3 py-1 text-xs font-semibold text-neutral-400"
+					>🚫 Excluded from pool</span
+				>
+				<form method="POST" action="?/include" use:enhance>
+					<button type="submit" class="text-xs text-neutral-500 underline hover:text-neutral-300">
+						Add back to pool
+					</button>
+				</form>
+			{:else}
+				<form method="POST" action="?/exclude" use:enhance>
+					<button type="submit" class="text-xs text-neutral-500 underline hover:text-neutral-300">
+						We know we won't watch this — remove from pool
+					</button>
+				</form>
+			{/if}
+		</div>
 
 		<h2 class="mt-6 text-sm font-semibold tracking-wide text-neutral-400 uppercase">Synopsis</h2>
 		<p class="mt-2 leading-relaxed text-neutral-300">

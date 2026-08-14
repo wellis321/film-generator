@@ -1,5 +1,6 @@
 import { db } from '$lib/server/db';
 import { movie } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -12,7 +13,8 @@ export const load: PageServerLoad = async () => {
 			mediaType: movie.mediaType,
 			watched: movie.watched
 		})
-		.from(movie);
+		.from(movie)
+		.where(eq(movie.excluded, false));
 
 	return { movies };
 };

@@ -12,6 +12,7 @@ export const movie = mysqlTable('movie', {
 	tmdbVoteCount: int('tmdb_vote_count'),
 	watched: boolean('watched').notNull().default(false),
 	watchedAt: timestamp('watched_at'),
+	excluded: boolean('excluded').notNull().default(false),
 	ourRating: int('our_rating'),
 	ourReview: text('our_review'),
 	createdAt: timestamp('created_at').notNull().defaultNow()
