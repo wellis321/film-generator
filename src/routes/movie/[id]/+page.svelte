@@ -10,7 +10,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.movie.title} — Nopemeter</title>
+	<title>{data.movie.title} — Regretometer</title>
 </svelte:head>
 
 <a href="/" class="text-sm text-neutral-500 transition hover:text-neutral-300">← Back to the wheel</a>

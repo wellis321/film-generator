@@ -56,7 +56,7 @@
 </script>
 
 <svelte:head>
-	<title>Nopemeter — Spin</title>
+	<title>Regretometer — Spin</title>
 </svelte:head>
 
 <section class="text-center">
@@ -74,15 +74,11 @@
 	{:else}
 		<div class="relative mx-auto mt-10 max-w-sm">
 			<div
-				class="pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
-			>
-				<div
-					class="absolute top-1/2 -left-[calc(50%+1.75rem)] h-0 w-0 -translate-y-1/2 border-y-[12px] border-l-[16px] border-y-transparent border-l-amber-400"
-				></div>
-				<div
-					class="absolute top-1/2 -right-[calc(50%+1.75rem)] h-0 w-0 -translate-y-1/2 border-y-[12px] border-r-[16px] border-y-transparent border-r-amber-400"
-				></div>
-			</div>
+				class="pointer-events-none absolute top-1/2 left-0 z-20 h-0 w-0 -translate-x-1/2 -translate-y-1/2 border-y-[12px] border-l-[16px] border-y-transparent border-l-amber-400"
+			></div>
+			<div
+				class="pointer-events-none absolute top-1/2 right-0 z-20 h-0 w-0 translate-x-1/2 -translate-y-1/2 border-y-[12px] border-r-[16px] border-y-transparent border-r-amber-400"
+			></div>
 
 			<div
 				class="relative h-60 overflow-hidden rounded-2xl border-2 border-amber-400/60 bg-neutral-900 shadow-[0_0_40px_-10px_rgba(251,191,36,0.4)]"

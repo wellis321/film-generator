@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>Watched — Nopemeter</title>
+	<title>Watched — Regretometer</title>
 </svelte:head>
 
 <h1 class="text-3xl font-black text-neutral-50 sm:text-4xl">Movies we've suffered through</h1>

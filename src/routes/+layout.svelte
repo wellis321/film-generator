@@ -19,7 +19,7 @@
 			<a href="/" class="flex items-center gap-2 text-lg font-bold tracking-tight">
 				<span class="text-2xl">🎡</span>
 				<span
-					>Nope<span class="text-amber-400">meter</span></span
+					>Regret<span class="text-amber-400">ometer</span></span
 				>
 			</a>
 			<nav class="flex gap-1">
