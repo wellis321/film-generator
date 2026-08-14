@@ -315,5 +315,72 @@ export const seedList: SeedEntry[] = [
 	{ title: 'A Good Day to Die Hard', mediaType: 'movie', year: '2013' },
 	{ title: "Ocean's Eleven", mediaType: 'movie', year: '2001' },
 	{ title: "Ocean's Twelve", mediaType: 'movie', year: '2004' },
-	{ title: "Ocean's Thirteen", mediaType: 'movie', year: '2007' }
+	{ title: "Ocean's Thirteen", mediaType: 'movie', year: '2007' },
+
+	// Nolan / prestige sci-fi
+	{ title: 'Inception', mediaType: 'movie', year: '2010' },
+	{ title: 'Interstellar', mediaType: 'movie', year: '2014' },
+	{ title: 'Dunkirk', mediaType: 'movie', year: '2017' },
+	{ title: 'Tenet', mediaType: 'movie', year: '2020' },
+	{ title: 'Oppenheimer', mediaType: 'movie', year: '2023' },
+
+	// Beloved classics / prestige favourites
+	{ title: 'Titanic', mediaType: 'movie', year: '1997' },
+	{ title: 'Avatar', mediaType: 'movie', year: '2009' },
+	{ title: 'Avatar: The Way of Water', mediaType: 'movie', year: '2022' },
+	{ title: 'Gladiator', mediaType: 'movie', year: '2000' },
+	{ title: 'Braveheart', mediaType: 'movie', year: '1995' },
+	{ title: 'Forrest Gump', mediaType: 'movie', year: '1994' },
+	{ title: 'The Shawshank Redemption', mediaType: 'movie', year: '1994' },
+	{ title: 'The Godfather', mediaType: 'movie', year: '1972' },
+	{ title: 'The Godfather Part II', mediaType: 'movie', year: '1974' },
+	{ title: 'Pulp Fiction', mediaType: 'movie', year: '1994' },
+	{ title: 'Fight Club', mediaType: 'movie', year: '1999' },
+	{ title: 'Goodfellas', mediaType: 'movie', year: '1990' },
+	{ title: 'Se7en', mediaType: 'movie', year: '1995' },
+
+	// Horror / thriller crowd-pleasers
+	{ title: 'Get Out', mediaType: 'movie', year: '2017' },
+	{ title: 'A Quiet Place', mediaType: 'movie', year: '2018' },
+	{ title: 'A Quiet Place Part II', mediaType: 'movie', year: '2021' },
+	{ title: 'It', mediaType: 'movie', year: '2017' },
+	{ title: 'It Chapter Two', mediaType: 'movie', year: '2019' },
+	{ title: 'The Conjuring', mediaType: 'movie', year: '2013' },
+	{ title: 'The Conjuring 2', mediaType: 'movie', year: '2016' },
+	{ title: 'Us', mediaType: 'movie', year: '2019' },
+	{ title: 'Hereditary', mediaType: 'movie', year: '2018' },
+
+	// Musicals / biopics
+	{ title: 'La La Land', mediaType: 'movie', year: '2016' },
+	{ title: 'A Star Is Born', mediaType: 'movie', year: '2018' },
+	{ title: 'Bohemian Rhapsody', mediaType: 'movie', year: '2018' },
+	{ title: 'Elvis', mediaType: 'movie', year: '2022' },
+	{ title: 'The Greatest Showman', mediaType: 'movie', year: '2017' },
+
+	// Monster / creature blockbusters
+	{ title: 'Godzilla', mediaType: 'movie', year: '2014' },
+	{ title: 'Kong: Skull Island', mediaType: 'movie', year: '2017' },
+	{ title: 'Godzilla vs. Kong', mediaType: 'movie', year: '2021' },
+	{ title: 'Independence Day', mediaType: 'movie', year: '1996' },
+	{ title: 'The Meg', mediaType: 'movie', year: '2018' },
+	{ title: 'Twister', mediaType: 'movie', year: '1996' },
+
+	// Comedy
+	{ title: 'The Hangover', mediaType: 'movie', year: '2009' },
+	{ title: 'The Hangover Part II', mediaType: 'movie', year: '2011' },
+	{ title: 'Men in Black', mediaType: 'movie', year: '1997' },
+	{ title: 'Men in Black II', mediaType: 'movie', year: '2002' },
+
+	// More action / adventure
+	{ title: 'Rocky', mediaType: 'movie', year: '1976' },
+	{ title: 'Creed', mediaType: 'movie', year: '2015' },
+	{ title: 'Creed II', mediaType: 'movie', year: '2018' },
+	{ title: 'Star Trek', mediaType: 'movie', year: '2009' },
+	{ title: 'Star Trek Into Darkness', mediaType: 'movie', year: '2013' },
+	{ title: 'Rise of the Planet of the Apes', mediaType: 'movie', year: '2011' },
+	{ title: 'Dawn of the Planet of the Apes', mediaType: 'movie', year: '2014' },
+	{ title: 'War for the Planet of the Apes', mediaType: 'movie', year: '2017' },
+	{ title: 'National Treasure', mediaType: 'movie', year: '2004' },
+	{ title: 'Sherlock Holmes', mediaType: 'movie', year: '2009' },
+	{ title: 'Sherlock Holmes: A Game of Shadows', mediaType: 'movie', year: '2011' }
 ];

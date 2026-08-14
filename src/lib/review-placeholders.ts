@@ -18,7 +18,22 @@ export const reviewPlaceholders = [
 	'Competently made. Zero desire to watch it again...',
 	'We spent more time discussing what to eat...',
 	'Technically a movie. Debatable whether we enjoyed it...',
-	"We've seen worse. We've also seen much, much better..."
+	"We've seen worse. We've also seen much, much better...",
+	'Would not recommend, but here we are...',
+	'The popcorn was the best part...',
+	'We laughed. Mostly at the wrong moments...',
+	'A triumph of marketing over substance...',
+	"We're not saying it was bad. We're also not saying it was good...",
+	'Certificate of participation only...',
+	'We watched every minute. We regret most of them...',
+	'10/10 would not watch again...',
+	"We've had root canals with better pacing...",
+	'This is now a core memory. Unfortunately...',
+	'Someone thought this deserved a sequel...',
+	'The dog barked more interesting things than the dialogue...',
+	'We checked our phones. A lot...',
+	'Riveting, if you enjoy staring blankly...',
+	"We're still processing. Send help..."
 ];
 
 export function randomPlaceholder() {

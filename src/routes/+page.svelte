@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { posterUrl } from '$lib/poster';
 	import { randomReaction } from '$lib/spin-reactions';
+	import { randomHeroSubtitle } from '$lib/hero-subtitles';
+	import { randomSpinAgainLabel } from '$lib/spin-button-labels';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
+	const heroSubtitle = randomHeroSubtitle();
+	let spinAgainLabel = $state('Spin again');
 	const ITEM_HEIGHT = 240;
 
 	const pool = $derived.by(() => {
@@ -55,6 +59,7 @@
 		hasSpun = true;
 		winner = sequence[sequence.length - 1];
 		reaction = randomReaction();
+		spinAgainLabel = randomSpinAgainLabel();
 	}
 </script>
 
@@ -67,7 +72,7 @@
 		Spin for tonight's <span class="text-amber-400">regret</span>.
 	</h1>
 	<p class="mt-3 text-neutral-400">
-		Press the button. Whatever it lands on, that's what we're watching.
+		{heroSubtitle}
 	</p>
 
 	{#if data.movies.length === 0}
@@ -135,7 +140,7 @@
 			disabled={spinning}
 			class="mt-8 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
 		>
-			{spinning ? 'Spinning…' : hasSpun ? 'Spin again' : 'Spin the wheel'}
+			{spinning ? 'Spinning…' : hasSpun ? spinAgainLabel : 'Spin the wheel'}
 		</button>
 
 		{#if winner && !spinning}

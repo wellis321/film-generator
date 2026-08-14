@@ -9,12 +9,12 @@
 	let { data }: { data: PageData } = $props();
 
 	const sortOptions = [
-		{ value: 'watched_desc', label: 'Recently watched' },
-		{ value: 'watched_asc', label: 'Watched longest ago' },
-		{ value: 'our_rating_desc', label: 'Our rating: high to low' },
-		{ value: 'our_rating_asc', label: 'Our rating: low to high' },
-		{ value: 'tmdb_rating_desc', label: 'TMDB rating: high to low' },
-		{ value: 'tmdb_rating_asc', label: 'TMDB rating: low to high' },
+		{ value: 'watched_desc', label: 'Recently endured' },
+		{ value: 'watched_asc', label: 'Distant memory' },
+		{ value: 'our_rating_desc', label: 'Least painful first' },
+		{ value: 'our_rating_asc', label: 'Most painful first' },
+		{ value: 'tmdb_rating_desc', label: "Everyone else's darlings first" },
+		{ value: 'tmdb_rating_asc', label: "Everyone else's duds first" },
 		{ value: 'title_asc', label: 'Title: A–Z' },
 		{ value: 'title_desc', label: 'Title: Z–A' }
 	];
@@ -102,11 +102,14 @@
 {#if data.movies.length === 0}
 	<p class="mt-10 text-neutral-500">
 		{#if hasActiveFilters}
-			No watched movies match these filters — <a href="/watched" class="text-amber-400 hover:underline"
-				>reset them</a
+			Nothing that regrettable, apparently — <a
+				href="/watched"
+				class="text-amber-400 hover:underline">reset the filters</a
 			>.
 		{:else}
-			Nothing watched yet — <a href="/" class="text-amber-400 hover:underline">go spin the wheel</a>.
+			No suffering logged yet — <a href="/" class="text-amber-400 hover:underline"
+				>go spin the wheel</a
+			>.
 		{/if}
 	</p>
 {:else}
