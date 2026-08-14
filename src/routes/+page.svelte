@@ -15,6 +15,7 @@
 	let hasSpun = $state(false);
 	let sequence = $state<typeof data.movies>([]);
 	let translateY = $state(0);
+	let transitionMs = $state(0);
 	let winner = $state<(typeof data.movies)[number] | null>(null);
 
 	function spin() {
@@ -31,10 +32,16 @@
 		);
 		seq.push(pick);
 		sequence = seq;
+
+		// Snap back to the top with no transition before animating down again,
+		// otherwise re-spinning would smoothly (and near-invisibly) ease from
+		// wherever the reel stopped last time instead of doing a full spin.
+		transitionMs = 0;
 		translateY = 0;
 
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
+				transitionMs = 3200;
 				translateY = -(seq.length - 1) * ITEM_HEIGHT;
 			});
 		});
@@ -90,9 +97,7 @@
 				{#if sequence.length}
 					<div
 						class="ease-[cubic-bezier(0.1,0.7,0.2,1)] transition-transform"
-						style="transform: translateY({translateY}px); transition-duration: {spinning
-							? '3200ms'
-							: '0ms'};"
+						style="transform: translateY({translateY}px); transition-duration: {transitionMs}ms;"
 						ontransitionend={onTransitionEnd}
 					>
 						{#each sequence as item, i (i)}
