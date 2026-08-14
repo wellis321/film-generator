@@ -16,7 +16,22 @@ if (!existsSync(app)) {
 // interpretation even with "type": "module" in package.json, so this file
 // uses require() for dotenv and a dynamic import() to hand off to the
 // real (ESM) adapter-node server.
+//
+// dotenv's default `require('dotenv/config')` resolves .env relative to
+// process.cwd(), which may not be the project root under Passenger/LSAPI.
+// Resolve it relative to this file's own location instead, and catch the
+// dynamic import so a startup error is at least reported instead of
+// crashing the process via an unhandled rejection (which just looks like
+// a silent, unexplained crash loop from the outside).
 writeFileSync(
 	join(buildDir, 'index.cjs'),
-	"require('dotenv/config');\nimport('./_app.js');\n"
+	[
+		"const path = require('path');",
+		"require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true });",
+		"import('./_app.js').catch((err) => {",
+		"\tconsole.error('Failed to start app:', err);",
+		'\tprocess.exit(1);',
+		'});',
+		''
+	].join('\n')
 );
