@@ -135,14 +135,18 @@
 						</p>
 
 						<p class="mt-3 text-xs text-neutral-500">
-							<span class="font-semibold text-neutral-400">Others say:</span>
+							<span class="font-medium text-neutral-500">Others say</span>
 							{m.tmdbRating ? `${m.tmdbRating}/10 on TMDB` : 'no rating available'}
 						</p>
 
-						<p class="mt-1 text-sm text-neutral-300">
-							<span class="font-semibold text-neutral-400">We say:</span>
-							{m.ourReview || 'No review yet.'}
-						</p>
+						<div class="mt-3 rounded-lg border-l-2 border-amber-400 bg-amber-400/[0.07] py-2 pl-3">
+							<p class="text-[0.65rem] font-bold tracking-widest text-amber-400 uppercase">
+								We say
+							</p>
+							<p class="mt-0.5 text-sm text-neutral-100">
+								{m.ourReview || 'No review yet.'}
+							</p>
+						</div>
 					</div>
 				</div>
 			</a>

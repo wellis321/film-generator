@@ -19,7 +19,12 @@ export async function searchTmdb(
 	yearHint?: string
 ): Promise<TmdbResult | null> {
 	const params = new URLSearchParams({ query });
-	if (yearHint) params.set(mediaType === 'movie' ? 'year' : 'first_air_date_year', yearHint);
+	// TMDB's `year`/`first_air_date_year` params are loose ranking hints, not
+	// filters — they don't reliably exclude same-titled results from other
+	// years (e.g. querying "Aladdin" with year=2019 still returned the 1992
+	// original first). `primary_release_year` is the actual strict filter
+	// for movies; TV has no equivalent, so we filter results by year below.
+	if (yearHint && mediaType === 'movie') params.set('primary_release_year', yearHint);
 
 	const res = await fetch(`${TMDB_API}/search/${mediaType}?${params}`, {
 		headers: { Authorization: `Bearer ${apiKey}`, accept: 'application/json' }
@@ -30,15 +35,26 @@ export async function searchTmdb(
 	const results: any[] = data.results ?? [];
 	if (results.length === 0) return null;
 
-	// TMDB's default ordering can surface trivia shorts/specials over the
-	// actual film (e.g. "X-Men: The Mutant Watch" outranking "X-Men").
-	// Prefer an exact title match, then fall back to whichever result has
-	// the most votes, since real theatrical releases dwarf shorts on votes.
+	// TMDB's default ordering can surface trivia shorts/specials, or a
+	// same-titled release from a different year, over the intended film
+	// (e.g. "X-Men: The Mutant Watch" outranking "X-Men"). Prefer an exact
+	// title match whose year also matches the hint, then any exact title
+	// match, then whichever result has the most votes.
 	const nameOf = (r: any) => (mediaType === 'movie' ? r.title : r.name) as string;
+	const yearOf = (r: any) =>
+		((mediaType === 'movie' ? r.release_date : r.first_air_date) as string | undefined)?.slice(
+			0,
+			4
+		);
 	const normalize = (s: string) => s.trim().toLowerCase();
-	const exactMatch = results.find((r) => normalize(nameOf(r)) === normalize(query));
+	const exactMatches = results.filter((r) => normalize(nameOf(r)) === normalize(query));
+	const exactMatchForYear = yearHint
+		? exactMatches.find((r) => yearOf(r) === yearHint)
+		: undefined;
 	const best =
-		exactMatch ?? results.reduce((a, b) => ((b.vote_count ?? 0) > (a.vote_count ?? 0) ? b : a));
+		exactMatchForYear ??
+		exactMatches[0] ??
+		results.reduce((a, b) => ((b.vote_count ?? 0) > (a.vote_count ?? 0) ? b : a));
 
 	return {
 		tmdbId: best.id,
