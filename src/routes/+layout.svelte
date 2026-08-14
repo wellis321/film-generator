@@ -42,7 +42,7 @@
 		{@render children()}
 	</main>
 
-	<footer class="border-t border-neutral-800 px-6 py-6 text-center text-xs text-neutral-600">
+	<footer class="border-t border-neutral-800 px-6 py-6 text-center text-base text-neutral-500">
 		For movies everyone else seems to love. We'll be the judge of that.
 	</footer>
 </div>

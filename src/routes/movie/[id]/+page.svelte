@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { posterUrl } from '$lib/poster';
+	import { randomPlaceholder } from '$lib/review-placeholders';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let ourRating = $state(data.movie.ourRating ?? 5);
 	let ourReview = $state(data.movie.ourReview ?? '');
+	const reviewPlaceholder = randomPlaceholder();
 </script>
 
 <svelte:head>
@@ -108,7 +110,7 @@
 					name="ourReview"
 					bind:value={ourReview}
 					rows="4"
-					placeholder="Utterly forgotten within twenty minutes..."
+					placeholder={reviewPlaceholder}
 					class="mt-2 w-full resize-y rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none"
 				></textarea>
 			</div>
