@@ -139,7 +139,7 @@
 							{m.tmdbRating ? `${m.tmdbRating}/10 on TMDB` : 'no rating available'}
 						</p>
 
-						<div class="mt-3 rounded-lg border-l-2 border-amber-400 bg-amber-400/[0.07] py-2 pl-3">
+						<div class="mt-3 border-l-2 border-amber-400 bg-amber-400/[0.07] py-2 pl-3">
 							<p class="text-[0.65rem] font-bold tracking-widest text-amber-400 uppercase">
 								We say
 							</p>
