@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { posterUrl } from '$lib/poster';
+	import { randomReaction } from '$lib/spin-reactions';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -17,6 +18,7 @@
 	let translateY = $state(0);
 	let transitionMs = $state(0);
 	let winner = $state<(typeof data.movies)[number] | null>(null);
+	let reaction = $state('');
 
 	function spin() {
 		if (spinning || pool.length === 0) return;
@@ -52,6 +54,7 @@
 		spinning = false;
 		hasSpun = true;
 		winner = sequence[sequence.length - 1];
+		reaction = randomReaction();
 	}
 </script>
 
@@ -136,25 +139,8 @@
 		</button>
 
 		{#if winner && !spinning}
-			<div
-				class="mx-auto mt-10 max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900 p-6 text-left"
-			>
-				<div class="flex gap-4">
-					{#if posterUrl(winner.posterPath)}
-						<img
-							src={posterUrl(winner.posterPath)}
-							alt=""
-							class="h-32 w-22 flex-shrink-0 rounded-lg object-cover shadow-lg"
-						/>
-					{/if}
-					<div class="min-w-0">
-						<p class="text-lg font-bold text-neutral-50">{winner.title}</p>
-						<p class="text-sm text-neutral-500">
-							{winner.year ?? ''}
-							{winner.mediaType === 'tv' ? '· TV Series' : ''}
-						</p>
-					</div>
-				</div>
+			<div class="mx-auto mt-10 max-w-sm text-center">
+				<p class="text-neutral-400 italic">{reaction}</p>
 				<a
 					href="/movie/{winner.id}"
 					class="mt-4 inline-block rounded-full bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-white"
