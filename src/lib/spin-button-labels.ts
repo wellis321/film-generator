@@ -1,3 +1,5 @@
+import { createNoRepeatPicker } from './random-pick';
+
 export const spinAgainLabels = [
 	'Spin again',
 	'Do it again',
@@ -16,6 +18,8 @@ export const spinAgainLabels = [
 	'Once more unto the breach'
 ];
 
+const pickSpinAgainLabel = createNoRepeatPicker(spinAgainLabels);
+
 export function randomSpinAgainLabel() {
-	return spinAgainLabels[Math.floor(Math.random() * spinAgainLabels.length)];
+	return pickSpinAgainLabel();
 }

@@ -1,3 +1,5 @@
+import { createNoRepeatPicker } from './random-pick';
+
 export const reviewPlaceholders = [
 	'Utterly forgotten within twenty minutes...',
 	"We're still not sure what the plot was about...",
@@ -63,6 +65,8 @@ export const reviewPlaceholders = [
 	'We watched the credits with more enthusiasm than the film...'
 ];
 
+const pickPlaceholder = createNoRepeatPicker(reviewPlaceholders);
+
 export function randomPlaceholder() {
-	return reviewPlaceholders[Math.floor(Math.random() * reviewPlaceholders.length)];
+	return pickPlaceholder();
 }

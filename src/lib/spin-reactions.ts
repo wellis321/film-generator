@@ -1,3 +1,5 @@
+import { createNoRepeatPicker } from './random-pick';
+
 export const spinReactions = [
 	'Ah. This old chestnut.',
 	'Bold choice by the wheel. Regrettable, but bold.',
@@ -95,9 +97,51 @@ export const spinReactions = [
 	'This film changed cinema forever, apparently. Forever is a long time.',
 	'We hear the soundtrack alone is worth the ticket price. Adjusting expectations.',
 	'This one is "for the whole family." Regret, it turns out, is too.',
-	'Word has it this one is unmissable. We shall attempt to miss it emotionally.'
+	'Word has it this one is unmissable. We shall attempt to miss it emotionally.',
+	'This one has a director\'s cut, an extended cut, and apparently our patience, cut short.',
+	'Beloved by millions. Baffling to two.',
+	'The score alone won awards. The plot, we assume, settled for participation.',
+	'We hear the practical effects took years. The dialogue, apparently, took less.',
+	'A generational event, we\'re told. We were not present for the generation in question.',
+	'This one broke box office records. Records, unlike plot holes, can be verified.',
+	'There is, we understand, an extended universe. We fear we are about to understand why.',
+	'Someone wrote fan fiction about this. Actual fan fiction. We checked.',
+	'The costume department clearly understood the assignment. The script, less so.',
+	'A visual spectacle, several critics agreed. Spectacle noted. Story, pending.',
+	'We hear there\'s a post-credits scene. We will endure the credits to find out.',
+	'This one has a 4K remaster. The plot remains standard definition.',
+	'Somebody\'s entire personality is built around this film. We\'re about to meet them.',
+	'The wheel selected this with what can only be described as malicious intent.',
+	'A generation\'s defining film, apparently, though we already have concerns about the last one that was.',
+	'We hear the practical stunts were genuinely dangerous. We respect the commitment.',
+	'This one spawned a theme park land. The bar, evidently, was a rollercoaster.',
+	'There is a fan theory more interesting than the actual plot. We looked it up.',
+	'A cult classic, they say. We remain outside the cult, invitation pending.',
+	'The runtime alone suggests commitment. Ours, not necessarily the film\'s.',
+	'We hear this one "holds up." Structurally or narratively remains unclear.',
+	'Someone\'s therapist has heard about this film in detail. Possibly several times.',
+	'This one has its own subreddit. We are already regretting checking.',
+	'A visually iconic scene, apparently. We\'ll know it when we see it. Maybe.',
+	'This film has been meme\'d into another dimension of relevance entirely.',
+	'The trailer had three different edits. We fear that means three different movies.',
+	'There is a novelisation. Someone wrote a book about this movie. We have questions.',
+	'This one apparently invented a whole subgenre. We\'re bracing for the originals now.',
+	'A beloved rewatch, for some. A first watch, with consequences, for us.',
+	'We hear the sequel undoes several plot points. Bold, given the plot points barely held together to begin with.',
+	'This one has a fan-restored cut. The original apparently needed restoring from itself.',
+	'Somewhere, someone is naming a pet after a character in this film.',
+	'A defining piece of someone\'s childhood. We are childhood-adjacent at best.',
+	'This film reportedly changed the industry. The industry, evidently, forgives easily.',
+	'There\'s a making-of documentary longer than the film. We may prefer the documentary.',
+	'This one has a rabid fanbase and, we suspect, an equally rabid plot.',
+	'The soundtrack has its own award. The dialogue did not campaign for one.',
+	'A tentpole film, apparently. We remain unclear on what, precisely, it\'s holding up.',
+	'This one is required viewing, according to strangers on the internet. We were not consulted.',
+	'The wheel has, once again, made a decision we did not authorise but must now honour.'
 ];
 
+const pickReaction = createNoRepeatPicker(spinReactions);
+
 export function randomReaction() {
-	return spinReactions[Math.floor(Math.random() * spinReactions.length)];
+	return pickReaction();
 }

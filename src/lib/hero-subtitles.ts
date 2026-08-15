@@ -1,3 +1,5 @@
+import { createNoRepeatPicker } from './random-pick';
+
 export const heroSubtitles = [
 	"Press the button. Whatever it lands on, that's what we're watching.",
 	'One button. Zero say in the matter.',
@@ -19,9 +21,21 @@ export const heroSubtitles = [
 	'The wheel does not care about your Tuesday plans.',
 	'Chosen by chance. Endured by choice.',
 	'Whatever happens next is not on us.',
-	'Spin first. Regret later. Regret is non-negotiable.'
+	'Spin first. Regret later. Regret is non-negotiable.',
+	'Free will was overrated anyway.',
+	'The wheel does not accept feedback.',
+	'One spin. Several regrets, pending.',
+	'This is not democracy. This is a wheel.',
+	"Outsourcing tonight's decision to physics.",
+	'The wheel has never apologised. Not once.',
+	'A gamble dressed up as a Tuesday.',
+	'Nobody asked the wheel to be fair.',
+	'Spin it. Blame it. Repeat.',
+	'The wheel remembers nothing. We remember everything.'
 ];
 
+const pickHeroSubtitle = createNoRepeatPicker(heroSubtitles);
+
 export function randomHeroSubtitle() {
-	return heroSubtitles[Math.floor(Math.random() * heroSubtitles.length)];
+	return pickHeroSubtitle();
 }
