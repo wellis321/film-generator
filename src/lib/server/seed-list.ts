@@ -382,5 +382,105 @@ export const seedList: SeedEntry[] = [
 	{ title: 'War for the Planet of the Apes', mediaType: 'movie', year: '2017' },
 	{ title: 'National Treasure', mediaType: 'movie', year: '2004' },
 	{ title: 'Sherlock Holmes', mediaType: 'movie', year: '2009' },
-	{ title: 'Sherlock Holmes: A Game of Shadows', mediaType: 'movie', year: '2011' }
+	{ title: 'Sherlock Holmes: A Game of Shadows', mediaType: 'movie', year: '2011' },
+
+	// Cult / comedy favourites
+	{ title: 'Desperado', mediaType: 'movie', year: '1995' },
+	{ title: 'From Dusk Till Dawn', mediaType: 'movie', year: '1996' },
+	{ title: 'Paddington', mediaType: 'movie', year: '2014' },
+	{ title: 'Paddington 2', mediaType: 'movie', year: '2017' },
+	{ title: 'Ted', mediaType: 'movie', year: '2012' },
+	{ title: 'Austin Powers: International Man of Mystery', mediaType: 'movie', year: '1997' },
+	{ title: 'Austin Powers: The Spy Who Shagged Me', mediaType: 'movie', year: '1999' },
+	{ title: 'Austin Powers in Goldmember', mediaType: 'movie', year: '2002' },
+	{ title: 'Highlander', mediaType: 'movie', year: '1986' },
+
+	// Top Gun / classic adventure
+	{ title: 'Top Gun', mediaType: 'movie', year: '1986' },
+	{ title: 'Top Gun: Maverick', mediaType: 'movie', year: '2022' },
+	{ title: 'E.T. the Extra-Terrestrial', mediaType: 'movie', year: '1982' },
+	{ title: 'Ghostbusters', mediaType: 'movie', year: '1984' },
+	{ title: 'Ghostbusters II', mediaType: 'movie', year: '1989' },
+	{ title: 'Ghostbusters: Afterlife', mediaType: 'movie', year: '2021' },
+	{ title: 'Dune', mediaType: 'movie', year: '2021' },
+	{ title: 'Dune: Part Two', mediaType: 'movie', year: '2024' },
+
+	// Horror classics
+	{ title: 'Halloween', mediaType: 'movie', year: '1978' },
+	{ title: 'Halloween', mediaType: 'movie', year: '2018' },
+	{ title: 'A Nightmare on Elm Street', mediaType: 'movie', year: '1984' },
+	{ title: 'Scream', mediaType: 'movie', year: '1996' },
+	{ title: 'Scream 2', mediaType: 'movie', year: '1997' },
+	{ title: 'Scream', mediaType: 'movie', year: '2022' },
+
+	// Thrillers / dramas
+	{ title: 'The Silence of the Lambs', mediaType: 'movie', year: '1991' },
+	{ title: 'Hannibal', mediaType: 'movie', year: '2001' },
+	{ title: 'Red Dragon', mediaType: 'movie', year: '2002' },
+	{ title: 'Shutter Island', mediaType: 'movie', year: '2010' },
+	{ title: '12 Years a Slave', mediaType: 'movie', year: '2013' },
+	{ title: 'Good Will Hunting', mediaType: 'movie', year: '1997' },
+	{ title: 'The Sixth Sense', mediaType: 'movie', year: '1999' },
+	{ title: 'Dead Poets Society', mediaType: 'movie', year: '1989' },
+	{ title: 'Full Metal Jacket', mediaType: 'movie', year: '1987' },
+	{ title: 'Joker: Folie à Deux', mediaType: 'movie', year: '2024' },
+
+	// Back to the Future
+	{ title: 'Back to the Future', mediaType: 'movie', year: '1985' },
+	{ title: 'Back to the Future Part II', mediaType: 'movie', year: '1989' },
+	{ title: 'Back to the Future Part III', mediaType: 'movie', year: '1990' },
+
+	// Gladiator II
+	{ title: 'Gladiator II', mediaType: 'movie', year: '2024' },
+
+	// Tomb Raider
+	{ title: 'Lara Croft: Tomb Raider', mediaType: 'movie', year: '2001' },
+	{ title: 'Lara Croft Tomb Raider: The Cradle of Life', mediaType: 'movie', year: '2003' },
+	{ title: 'Tomb Raider', mediaType: 'movie', year: '2018' },
+
+	// Tarantino
+	{ title: 'Reservoir Dogs', mediaType: 'movie', year: '1992' },
+	{ title: 'Jackie Brown', mediaType: 'movie', year: '1997' },
+	{ title: 'Kill Bill: Vol. 1', mediaType: 'movie', year: '2003' },
+	{ title: 'Kill Bill: Vol. 2', mediaType: 'movie', year: '2004' },
+	{ title: 'Death Proof', mediaType: 'movie', year: '2007' },
+	{ title: 'Inglourious Basterds', mediaType: 'movie', year: '2009' },
+	{ title: 'Django Unchained', mediaType: 'movie', year: '2012' },
+	{ title: 'The Hateful Eight', mediaType: 'movie', year: '2015' },
+	{ title: 'Once Upon a Time in Hollywood', mediaType: 'movie', year: '2019' },
+
+	// More Alien
+	{ title: 'Alien 3', mediaType: 'movie', year: '1992' },
+	{ title: 'Alien: Resurrection', mediaType: 'movie', year: '1997' },
+	{ title: 'Prometheus', mediaType: 'movie', year: '2012' },
+	{ title: 'Alien: Covenant', mediaType: 'movie', year: '2017' },
+
+	// Guy Ritchie
+	{ title: 'Lock, Stock and Two Smoking Barrels', mediaType: 'movie', year: '1998' },
+	{ title: 'Snatch', mediaType: 'movie', year: '2000' },
+	{ title: 'RocknRolla', mediaType: 'movie', year: '2008' },
+	{ title: 'The Gentlemen', mediaType: 'movie', year: '2020' },
+
+	// Karate Kid
+	{ title: 'The Karate Kid', mediaType: 'movie', year: '1984' },
+	{ title: 'The Karate Kid Part II', mediaType: 'movie', year: '1986' },
+	{ title: 'The Karate Kid', mediaType: 'movie', year: '2010' },
+
+	// Mad Max
+	{ title: 'Mad Max', mediaType: 'movie', year: '1979' },
+	{ title: 'Mad Max 2', mediaType: 'movie', year: '1981' },
+	{ title: 'Mad Max Beyond Thunderdome', mediaType: 'movie', year: '1985' },
+	{ title: 'Mad Max: Fury Road', mediaType: 'movie', year: '2015' },
+	{ title: 'Furiosa: A Mad Max Saga', mediaType: 'movie', year: '2024' },
+
+	// Jaws
+	{ title: 'Jaws', mediaType: 'movie', year: '1975' },
+
+	// More Rocky
+	{ title: 'Rocky II', mediaType: 'movie', year: '1979' },
+	{ title: 'Rocky III', mediaType: 'movie', year: '1982' },
+	{ title: 'Rocky IV', mediaType: 'movie', year: '1985' },
+	{ title: 'Rocky V', mediaType: 'movie', year: '1990' },
+	{ title: 'Rocky Balboa', mediaType: 'movie', year: '2006' },
+	{ title: 'Creed III', mediaType: 'movie', year: '2023' }
 ];
