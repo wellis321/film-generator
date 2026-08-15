@@ -34,6 +34,51 @@
 		refusal to pretend we felt something we didn't.
 	</p>
 
+	<div>
+		<h2 class="text-sm font-semibold tracking-wide text-neutral-400 uppercase">
+			A short, ongoing list of things we don't understand
+		</h2>
+		<ul class="mt-4 space-y-3">
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>Vampires who can suddenly stroll around in broad daylight. Rules, it turns out, are optional.</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>If you can trap someone in an endless simulated train, why not just... leave them there? Seems tidier.</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>Did Harry Potter just try to kill his own aunt, and did anyone else notice nobody mentioned it again?</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>You can apparently just drive a car to Hogwarts. So what, precisely, was the point of the wall at the train station?</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>We are not touching the Wolverine timeline. Nobody is touching the Wolverine timeline.</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>Was that entire superhero team-up filmed in one room? It certainly looked like it.</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>A hyperdrive that has failed at the worst possible moment for roughly fifty years running.</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>A state-of-the-art dinosaur cloning facility with, it turns out, one unreliable fence.</span>
+			</li>
+			<li class="flex gap-3">
+				<span class="text-amber-400">—</span>
+				<span>Parents who somehow board an international flight without noticing a missing child.</span>
+			</li>
+		</ul>
+		<p class="mt-4 text-sm text-neutral-500">This list will, unfortunately, keep growing.</p>
+	</div>
+
 	<a
 		href="/"
 		class="mt-2 inline-block rounded-full bg-amber-400 px-6 py-2.5 text-sm font-semibold text-neutral-950 transition hover:bg-amber-300"
