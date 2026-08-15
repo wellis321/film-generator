@@ -206,9 +206,9 @@
 <dialog
 	bind:this={dialogEl}
 	onclose={onDialogClose}
-	class="m-auto w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-0 text-neutral-100 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+	class="m-auto w-[95vw] max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-0 text-neutral-100 backdrop:bg-black/70 backdrop:backdrop-blur-sm sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl"
 >
-	<div bind:this={scrollContainer} class="max-h-[85vh] overflow-y-auto p-6">
+	<div bind:this={scrollContainer} class="max-h-[85vh] overflow-y-auto p-4 sm:p-6 lg:p-8">
 		<div class="flex items-start justify-between gap-4">
 			<p class="text-sm font-semibold tracking-wide text-amber-400 uppercase">
 				{roundSize > 0 ? bracketSizeLabels[roundSize] : ''}
@@ -346,7 +346,9 @@
 					</div>
 				{/if}
 
-				<div class="mt-6 grid grid-cols-4 gap-3 text-left sm:grid-cols-6 md:grid-cols-8">
+				<div
+					class="mt-6 grid grid-cols-4 gap-3 text-left sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12"
+				>
 					{#each results as result (result.movie.id)}
 						<a href="/movie/{result.movie.id}" class="group block" title={result.movie.title}>
 							{#if posterUrl(result.movie.posterPath)}
