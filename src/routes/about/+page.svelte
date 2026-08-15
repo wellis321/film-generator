@@ -82,10 +82,10 @@
 		</p>
 
 		<p class="leading-relaxed">
-			So if you've ever sat through a beloved classic wondering why the plot needed three
-			prequels to make sense, or quietly thought <em>"huh, that was fine, I guess"</em> while everyone
-			around you wept with joy — welcome. No malice here, just a family with a wheel and a stubborn
-			refusal to pretend we felt something we didn't.
+			So if you've ever sat through a beloved classic wondering when the plot was going to make
+			an appearance, or quietly thought <em>"is it me? Maybe there's something wrong with me"</em> while
+			everyone around you wept with joy — welcome. No malice here, just a family with a wheel and
+			a stubborn refusal to pretend we felt something we didn't.
 		</p>
 
 		<div>
