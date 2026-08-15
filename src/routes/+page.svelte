@@ -5,37 +5,44 @@
 	import { randomHeroSubtitle } from '$lib/hero-subtitles';
 	import { randomSpinAgainLabel } from '$lib/spin-button-labels';
 	import { splitSentences } from '$lib/split-sentences';
-	import { spinCountOptions } from '$lib/spin-count-options';
+	import { bracketSizes, bracketSizeLabels } from '$lib/bracket-sizes';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const heroSubtitle = randomHeroSubtitle();
-	let spinAgainLabel = $state('Spin again');
 	const ITEM_HEIGHT = 240;
 
-	const pool = $derived.by(() => {
+	const fullPool = $derived.by(() => {
 		const unwatched = data.movies.filter((m) => !m.watched);
 		return unwatched.length > 0 ? unwatched : data.movies;
 	});
 
-	let selectedCount = $state<number>(spinCountOptions[0].count);
+	let selectedBracketSize = $state<number>(16);
 
 	let spinning = $state(false);
-	let hasSpun = $state(false);
 	let sequence = $state<typeof data.movies>([]);
 	let translateY = $state(0);
 	let transitionMs = $state(0);
+
+	let roundPool = $state<typeof data.movies>([]);
+	let roundSize = $state(0);
 	let spinsRemaining = $state(0);
 	let totalInBatch = $state(0);
 	let results = $state<{ movie: (typeof data.movies)[number]; quip: string }[]>([]);
 	let closingQuip = $state('');
+	let champion = $state<{ movie: (typeof data.movies)[number]; quip: string } | null>(null);
+	let newBracketLabel = $state('Spin again');
 
-	const batchActive = $derived(spinning || spinsRemaining > 0);
+	const bracketActive = $derived(spinning || spinsRemaining > 0);
+	const roundComplete = $derived(
+		!bracketActive && roundSize > 0 && results.length === roundSize && !champion
+	);
+	const nextRoundSize = $derived(roundSize > 1 ? Math.ceil(roundSize / 2) : 0);
 
-	function pickFromPool(excludeIds: Set<number>) {
-		const candidates = pool.filter((m) => !excludeIds.has(m.id));
-		const source = candidates.length > 0 ? candidates : pool;
+	function pickFromRoundPool(excludeIds: Set<number>) {
+		const candidates = roundPool.filter((m) => !excludeIds.has(m.id));
+		const source = candidates.length > 0 ? candidates : roundPool;
 		return source[Math.floor(Math.random() * source.length)];
 	}
 
@@ -43,12 +50,12 @@
 		spinning = true;
 
 		const excludeIds = new Set(results.map((r) => r.movie.id));
-		const pick = pickFromPool(excludeIds);
+		const pick = pickFromRoundPool(excludeIds);
 
 		const reelLength = 26;
 		const seq = Array.from(
 			{ length: reelLength - 1 },
-			() => pool[Math.floor(Math.random() * pool.length)]
+			() => roundPool[Math.floor(Math.random() * roundPool.length)]
 		);
 		seq.push(pick);
 		sequence = seq;
@@ -67,20 +74,39 @@
 		});
 	}
 
-	function startBatch() {
-		if (batchActive || pool.length === 0) return;
+	function beginRound(size: number) {
+		roundSize = size;
+		totalInBatch = size;
+		spinsRemaining = size;
 		results = [];
 		closingQuip = '';
-		const effectiveCount = Math.min(selectedCount, pool.length);
-		totalInBatch = effectiveCount;
-		spinsRemaining = effectiveCount;
 		runSpin();
+	}
+
+	function startBracket() {
+		if (bracketActive || fullPool.length === 0) return;
+		champion = null;
+		roundPool = fullPool;
+		beginRound(Math.min(selectedBracketSize, fullPool.length));
+	}
+
+	function continueBracket() {
+		if (bracketActive || nextRoundSize === 0) return;
+		roundPool = results.map((r) => r.movie);
+		beginRound(nextRoundSize);
+	}
+
+	function resetBracket() {
+		roundSize = 0;
+		champion = null;
+		results = [];
+		closingQuip = '';
+		sequence = [];
 	}
 
 	function onTransitionEnd() {
 		if (!spinning) return;
 		spinning = false;
-		hasSpun = true;
 
 		const landed = sequence[sequence.length - 1];
 		results = [...results, { movie: landed, quip: randomReaction() }];
@@ -88,9 +114,11 @@
 
 		if (spinsRemaining > 0) {
 			setTimeout(runSpin, 450);
+		} else if (roundSize === 1) {
+			champion = results[0];
+			newBracketLabel = randomSpinAgainLabel();
 		} else {
 			closingQuip = randomGalleryQuip();
-			spinAgainLabel = randomSpinAgainLabel();
 		}
 	}
 </script>
@@ -170,40 +198,97 @@
 			</div>
 		</div>
 
-		<div class="mx-auto mt-6 flex max-w-sm flex-wrap justify-center gap-2">
-			{#each spinCountOptions as option (option.count)}
-				<button
-					type="button"
-					onclick={() => (selectedCount = option.count)}
-					disabled={batchActive}
-					class="rounded-full border px-4 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 {selectedCount ===
-					option.count
-						? 'border-amber-400 bg-amber-400/10 text-amber-400'
-						: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
-				>
-					{option.label} ({option.count})
-				</button>
-			{/each}
-		</div>
+		{#if roundSize === 0}
+			<div class="mx-auto mt-6 flex max-w-lg flex-wrap justify-center gap-2">
+				{#each bracketSizes as size (size)}
+					<button
+						type="button"
+						onclick={() => (selectedBracketSize = size)}
+						class="rounded-full border px-4 py-1.5 text-sm font-medium transition {selectedBracketSize ===
+						size
+							? 'border-amber-400 bg-amber-400/10 text-amber-400'
+							: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
+					>
+						{bracketSizeLabels[size]} ({size})
+					</button>
+				{/each}
+			</div>
+		{/if}
 
-		<button
-			onclick={startBatch}
-			disabled={batchActive}
-			class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-		>
-			{batchActive ? 'Spinning…' : hasSpun ? spinAgainLabel : 'Spin the wheel'}
-		</button>
+		{#if champion}
+			<button
+				onclick={resetBracket}
+				class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+			>
+				{newBracketLabel}
+			</button>
+		{:else if roundComplete}
+			<button
+				onclick={continueBracket}
+				class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+			>
+				Narrow it down to the {bracketSizeLabels[nextRoundSize]}
+			</button>
+		{:else}
+			<button
+				onclick={startBracket}
+				disabled={bracketActive}
+				class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+			>
+				{bracketActive ? 'Spinning…' : 'Spin the wheel'}
+			</button>
+		{/if}
 
-		{#if batchActive}
+		{#if bracketActive}
 			<p class="mt-3 text-sm text-neutral-500">
-				Spin {totalInBatch - spinsRemaining + 1} of {totalInBatch}
+				{bracketSizeLabels[roundSize]} — spin {totalInBatch - spinsRemaining + 1} of {totalInBatch}
 			</p>
 		{/if}
 
-		{#if results.length > 0}
+		{#if champion}
+			<div class="mx-auto mt-10 max-w-sm text-center">
+				<p class="text-sm font-semibold tracking-wide text-amber-400 uppercase">Champion</p>
+				<a href="/movie/{champion.movie.id}" class="group mt-4 block">
+					{#if posterUrl(champion.movie.posterPath, 'w500')}
+						<img
+							src={posterUrl(champion.movie.posterPath, 'w500')}
+							alt=""
+							class="mx-auto w-48 rounded-2xl object-cover shadow-xl transition group-hover:opacity-90"
+						/>
+					{:else}
+						<div
+							class="mx-auto flex h-72 w-48 items-center justify-center rounded-2xl bg-neutral-800 text-5xl"
+						>
+							🎬
+						</div>
+					{/if}
+				</a>
+				<p class="mt-4 text-2xl font-bold text-neutral-50">{champion.movie.title}</p>
+				<p class="text-sm text-neutral-500">
+					{champion.movie.year ?? ''}
+					{champion.movie.mediaType === 'tv' ? '· TV Series' : ''}
+				</p>
+				<div class="mt-4 space-y-1 text-lg text-neutral-300 italic">
+					{#each splitSentences(champion.quip) as line (line)}
+						<p>{line}</p>
+					{/each}
+				</div>
+				<a
+					href="/movie/{champion.movie.id}"
+					class="mt-4 inline-block rounded-full bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-white"
+				>
+					View & review →
+				</a>
+			</div>
+		{:else if results.length > 0}
 			<div class="mx-auto mt-10 max-w-3xl">
+				{#if roundSize > 0}
+					<p class="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
+						{bracketSizeLabels[roundSize]}
+					</p>
+				{/if}
 				{#if closingQuip}
-					<div class="space-y-1 text-center text-lg text-neutral-300 italic">
+					<div class="mt-2 space-y-1 text-center text-lg text-neutral-300 italic">
 						{#each splitSentences(closingQuip) as line (line)}
 							<p>{line}</p>
 						{/each}
