@@ -51,4 +51,7 @@
 	<p class="mt-4 text-sm text-neutral-500">
 		No account yet? <a href="/signup" class="text-amber-400 hover:underline">Sign up</a>
 	</p>
+	<p class="mt-1 text-sm text-neutral-500">
+		<a href="/forgot-password" class="text-amber-400 hover:underline">Forgot your password?</a>
+	</p>
 </div>

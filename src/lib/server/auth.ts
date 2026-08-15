@@ -2,12 +2,13 @@ import { randomBytes, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
-import { session, user } from './db/schema';
+import { session, user, passwordResetToken } from './db/schema';
 
 const scryptAsync = promisify(scrypt);
 
 export const SESSION_COOKIE_NAME = 'session';
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+const RESET_TOKEN_DURATION_MS = 1000 * 60 * 30; // 30 minutes
 
 export async function hashPassword(password: string): Promise<string> {
 	const salt = randomBytes(16).toString('hex');
@@ -69,4 +70,44 @@ export async function validateSessionToken(token: string) {
 export async function invalidateSession(token: string) {
 	const id = hashToken(token);
 	await db.delete(session).where(eq(session.id, id));
+}
+
+export async function invalidateAllUserSessions(userId: number) {
+	await db.delete(session).where(eq(session.userId, userId));
+}
+
+export function generateResetToken(): string {
+	return randomBytes(32).toString('hex');
+}
+
+export async function createPasswordResetToken(token: string, userId: number) {
+	const id = hashToken(token);
+	const expiresAt = new Date(Date.now() + RESET_TOKEN_DURATION_MS);
+	// A user can only have one live reset link at a time — requesting a new
+	// one invalidates any earlier link still sitting in their inbox.
+	await db.delete(passwordResetToken).where(eq(passwordResetToken.userId, userId));
+	await db.insert(passwordResetToken).values({ id, userId, expiresAt });
+}
+
+export async function validatePasswordResetToken(token: string) {
+	const id = hashToken(token);
+	const [result] = await db
+		.select()
+		.from(passwordResetToken)
+		.where(eq(passwordResetToken.id, id))
+		.limit(1);
+
+	if (!result) return null;
+
+	if (result.expiresAt.getTime() < Date.now()) {
+		await db.delete(passwordResetToken).where(eq(passwordResetToken.id, id));
+		return null;
+	}
+
+	return { userId: result.userId };
+}
+
+export async function consumePasswordResetToken(token: string) {
+	const id = hashToken(token);
+	await db.delete(passwordResetToken).where(eq(passwordResetToken.id, id));
 }

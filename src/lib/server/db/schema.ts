@@ -39,6 +39,12 @@ export const session = mysqlTable('session', {
 	expiresAt: timestamp('expires_at').notNull()
 });
 
+export const passwordResetToken = mysqlTable('password_reset_token', {
+	id: varchar('id', { length: 255 }).primaryKey(),
+	userId: int('user_id').notNull(),
+	expiresAt: timestamp('expires_at').notNull()
+});
+
 // One row per (user, movie): that user's personal watched/rating/review/
 // exclusion state for that title.
 export const userMovie = mysqlTable(

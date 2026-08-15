@@ -22,6 +22,7 @@ export const actions: Actions = {
 			.trim()
 			.toLowerCase();
 		const password = String(form.get('password') ?? '');
+		const confirmPassword = String(form.get('confirmPassword') ?? '');
 		const name = String(form.get('name') ?? '').trim();
 
 		if (!email || !email.includes('@')) {
@@ -29,6 +30,9 @@ export const actions: Actions = {
 		}
 		if (password.length < 8) {
 			return fail(400, { error: 'Password must be at least 8 characters.', email, name });
+		}
+		if (password !== confirmPassword) {
+			return fail(400, { error: 'Passwords don’t match.', email, name });
 		}
 
 		const [existing] = await db

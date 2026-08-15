@@ -49,6 +49,18 @@
 			<p class="mt-1 text-xs text-neutral-500">At least 8 characters.</p>
 		</div>
 
+		<div>
+			<label for="confirmPassword" class="block text-sm text-neutral-400">Confirm password</label>
+			<input
+				id="confirmPassword"
+				name="confirmPassword"
+				type="password"
+				required
+				minlength="8"
+				class="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-neutral-100 focus:border-amber-400 focus:outline-none"
+			/>
+		</div>
+
 		{#if form?.error}
 			<p class="text-sm text-red-400">{form.error}</p>
 		{/if}
