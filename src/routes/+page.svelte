@@ -6,6 +6,14 @@
 	import { randomSpinAgainLabel } from '$lib/spin-button-labels';
 	import { splitSentences } from '$lib/split-sentences';
 	import { bracketSizes, bracketSizeLabels } from '$lib/bracket-sizes';
+	import { characterNameSuggestions } from '$lib/player-name-suggestions';
+	import { playerColors } from '$lib/player-colors';
+	import {
+		eliminatedQuip,
+		stillInQuip,
+		noSurvivorsQuip,
+		championClaimedQuip
+	} from '$lib/player-quips';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -37,11 +45,65 @@
 	let newBracketLabel = $state('Spin again');
 	let pendingSpinTimeout: ReturnType<typeof setTimeout> | null = null;
 
+	// Optional "who's picking" layer: named players claim a couple of movies
+	// each right after round 1, then we narrate whether their picks survive
+	// each subsequent round.
+	const CLAIMS_PER_PLAYER = 2;
+	let players = $state<string[]>([]);
+	let claims = $state<Map<number, number>>(new Map());
+	let claimingPlayerIndex = $state(0);
+	let claimsCollected = $state(false);
+	let survivingPlayerIndices = $state<Set<number>>(new Set());
+	let roundNarration = $state('');
+
+	const playerNames = $derived(players.map((n, i) => n.trim() || `Player ${i + 1}`));
+
+	function countFor(playerIndex: number) {
+		let count = 0;
+		for (const idx of claims.values()) if (idx === playerIndex) count++;
+		return count;
+	}
+
+	const allClaimsComplete = $derived.by(() => {
+		if (players.length === 0) return true;
+		for (let i = 0; i < players.length; i++) {
+			if (countFor(i) < CLAIMS_PER_PLAYER) return false;
+		}
+		return true;
+	});
+
 	const bracketActive = $derived(spinning || spinsRemaining > 0);
 	const roundComplete = $derived(
 		!bracketActive && roundSize > 0 && results.length === roundSize && !champion
 	);
 	const nextRoundSize = $derived(roundSize > 1 ? Math.ceil(roundSize / 2) : 0);
+
+	// The gallery grid mirrors the round size instead of a flat responsive
+	// breakpoint set, so a round of 4 shows a few tiles across one row while
+	// a round of 64 wraps into rows of 8. Columns are capped to a fixed max
+	// width (not a stretchy fraction of the dialog) so a small round like 4
+	// stays thumbnail-sized instead of blowing up to fill the whole width —
+	// the reel and the results need to fit on screen together.
+	const galleryGridClasses: Record<number, string> = {
+		2: 'grid-cols-[repeat(2,minmax(0,110px))] sm:grid-cols-[repeat(2,minmax(0,140px))] justify-center',
+		4: 'grid-cols-[repeat(2,minmax(0,100px))] sm:grid-cols-[repeat(4,minmax(0,120px))] justify-center',
+		8: 'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center',
+		16: 'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center',
+		32: 'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center',
+		64: 'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center'
+	};
+	const galleryGridClass = $derived(
+		galleryGridClasses[totalInBatch] ??
+			'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center'
+	);
+	const needsClaiming = $derived(roundComplete && players.length > 0 && !claimsCollected);
+
+	$effect(() => {
+		if (needsClaiming && allClaimsComplete) {
+			claimsCollected = true;
+			survivingPlayerIndices = playersWithClaims();
+		}
+	});
 
 	// The dialog scrolls internally, so newly landed picks append below the
 	// fold during a fast, large round — follow them down as they arrive.
@@ -100,12 +162,74 @@
 		});
 	}
 
+	function addPlayer() {
+		if (players.length >= 5) return;
+		players = [...players, ''];
+	}
+
+	function removePlayer(index: number) {
+		players = players.filter((_, i) => i !== index);
+	}
+
+	function randomNameFor(index: number) {
+		const used = new Set(players.filter((n) => n));
+		const available = characterNameSuggestions.filter((n) => !used.has(n));
+		const pool = available.length > 0 ? available : characterNameSuggestions;
+		players[index] = pool[Math.floor(Math.random() * pool.length)];
+	}
+
+	function claimMovie(movieId: number) {
+		if (!needsClaiming) return;
+		const owner = claims.get(movieId);
+		if (owner !== undefined) {
+			if (owner === claimingPlayerIndex) {
+				claims.delete(movieId);
+				claims = new Map(claims);
+			}
+			return;
+		}
+		if (countFor(claimingPlayerIndex) >= CLAIMS_PER_PLAYER) return;
+		claims.set(movieId, claimingPlayerIndex);
+		claims = new Map(claims);
+		if (
+			countFor(claimingPlayerIndex) >= CLAIMS_PER_PLAYER &&
+			claimingPlayerIndex < players.length - 1
+		) {
+			claimingPlayerIndex += 1;
+		}
+	}
+
+	function playersWithClaims() {
+		const withClaims = new Set<number>();
+		for (const playerIndex of claims.values()) withClaims.add(playerIndex);
+		return withClaims;
+	}
+
+	function skipClaiming() {
+		claimsCollected = true;
+		survivingPlayerIndices = playersWithClaims();
+	}
+
+	// Compares this round's survivors against who was still in going into it,
+	// returning the names of anyone whose last claimed movie just died.
+	function updateSurvivors(aliveIds: Set<number>) {
+		const currentlySurviving = new Set<number>();
+		for (let i = 0; i < players.length; i++) {
+			const claimedIds = [...claims.entries()].filter(([, pi]) => pi === i).map(([id]) => id);
+			if (claimedIds.some((id) => aliveIds.has(id))) currentlySurviving.add(i);
+		}
+		const newlyEliminated = [...survivingPlayerIndices].filter((i) => !currentlySurviving.has(i));
+		survivingPlayerIndices = currentlySurviving;
+		return { currentlySurviving, newlyEliminated };
+	}
+
 	function beginRound(size: number) {
 		roundSize = size;
 		totalInBatch = size;
 		spinsRemaining = size;
 		results = [];
 		closingQuip = '';
+		roundNarration = '';
 		runSpin();
 	}
 
@@ -138,6 +262,11 @@
 		results = [];
 		closingQuip = '';
 		sequence = [];
+		claims = new Map();
+		claimingPlayerIndex = 0;
+		claimsCollected = false;
+		survivingPlayerIndices = new Set();
+		roundNarration = '';
 	}
 
 	function onTransitionEnd() {
@@ -153,11 +282,39 @@
 				pendingSpinTimeout = null;
 				runSpin();
 			}, pauseDurationFor(roundSize));
-		} else if (roundSize === 1) {
+			return;
+		}
+
+		const trackingPlayers = claimsCollected && claims.size > 0;
+		const aliveIds = new Set(results.map((r) => r.movie.id));
+		const { newlyEliminated } = trackingPlayers
+			? updateSurvivors(aliveIds)
+			: { newlyEliminated: [] as number[] };
+
+		if (roundSize === 1) {
 			champion = results[0];
 			newBracketLabel = randomSpinAgainLabel();
+			if (trackingPlayers) {
+				const winnerIndex = claims.get(champion.movie.id);
+				if (winnerIndex !== undefined) {
+					roundNarration = championClaimedQuip(playerNames[winnerIndex]);
+				} else if (newlyEliminated.length > 0) {
+					roundNarration = `${eliminatedQuip(newlyEliminated.map((i) => playerNames[i]))} ${noSurvivorsQuip()}`;
+				} else {
+					roundNarration = noSurvivorsQuip();
+				}
+			}
 		} else {
 			closingQuip = randomGalleryQuip();
+			if (trackingPlayers) {
+				const stillIn = [...survivingPlayerIndices].map((i) => playerNames[i]);
+				roundNarration =
+					newlyEliminated.length > 0
+						? eliminatedQuip(newlyEliminated.map((i) => playerNames[i]))
+						: stillIn.length > 0
+							? stillInQuip(stillIn)
+							: '';
+			}
 		}
 	}
 </script>
@@ -192,6 +349,53 @@
 					{bracketSizeLabels[size]} ({size})
 				</button>
 			{/each}
+		</div>
+
+		<div class="mx-auto mt-6 max-w-md">
+			<p class="text-sm text-neutral-500">
+				Who's picking? <span class="text-neutral-600">(optional)</span>
+			</p>
+			<div class="mt-2 space-y-2">
+				{#each players as _, i (i)}
+					<div class="flex items-center gap-2">
+						<span
+							class="h-2.5 w-2.5 flex-shrink-0 rounded-full {playerColors[i % playerColors.length]
+								.badge.split(' ')[0]}"
+						></span>
+						<input
+							type="text"
+							placeholder="Player {i + 1}"
+							bind:value={players[i]}
+							class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none"
+						/>
+						<button
+							type="button"
+							onclick={() => randomNameFor(i)}
+							title="Suggest a name"
+							class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
+						>
+							🎲
+						</button>
+						<button
+							type="button"
+							onclick={() => removePlayer(i)}
+							aria-label="Remove player"
+							class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
+						>
+							✕
+						</button>
+					</div>
+				{/each}
+			</div>
+			{#if players.length < 5}
+				<button
+					type="button"
+					onclick={addPlayer}
+					class="mt-2 text-sm text-amber-400 hover:underline"
+				>
+					+ Add player
+				</button>
+			{/if}
 		</div>
 
 		<button
@@ -288,6 +492,14 @@
 				>
 					{newBracketLabel}
 				</button>
+			{:else if needsClaiming}
+				<p class="text-lg font-semibold {playerColors[claimingPlayerIndex % playerColors.length].text}">
+					{playerNames[claimingPlayerIndex]}'s turn — pick {CLAIMS_PER_PLAYER -
+						countFor(claimingPlayerIndex)} more
+				</p>
+				<button type="button" onclick={skipClaiming} class="mt-2 text-sm text-neutral-500 hover:underline">
+					Skip picks
+				</button>
 			{:else if roundComplete}
 				<button
 					onclick={continueBracket}
@@ -329,6 +541,9 @@
 						<p>{line}</p>
 					{/each}
 				</div>
+				{#if roundNarration}
+					<p class="mt-3 text-base font-semibold text-neutral-100">{roundNarration}</p>
+				{/if}
 				<a
 					href="/movie/{champion.movie.id}"
 					class="mt-4 inline-block rounded-full bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-white"
@@ -345,29 +560,62 @@
 						{/each}
 					</div>
 				{/if}
+				{#if roundNarration}
+					<p class="mt-2 text-center text-base font-semibold text-neutral-100">{roundNarration}</p>
+				{/if}
 
-				<div
-					class="mt-6 grid grid-cols-4 gap-3 text-left sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12"
-				>
+				{#snippet resultThumb(result: (typeof results)[number])}
+					{@const owner = claims.get(result.movie.id)}
+					{#if owner !== undefined}
+						<span
+							class="absolute -top-1.5 -right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold {playerColors[
+								owner % playerColors.length
+							].badge}"
+						>
+							{playerNames[owner]?.[0] ?? '?'}
+						</span>
+					{/if}
+					{#if posterUrl(result.movie.posterPath)}
+						<img
+							src={posterUrl(result.movie.posterPath)}
+							alt=""
+							class="w-full rounded-lg object-cover shadow-md transition group-hover:opacity-80 {owner !==
+							undefined
+								? `ring-2 ${playerColors[owner % playerColors.length].ring}`
+								: ''}"
+						/>
+					{:else}
+						<div
+							class="flex aspect-[2/3] items-center justify-center rounded-lg bg-neutral-800 text-xl"
+						>
+							🎬
+						</div>
+					{/if}
+					<p class="mt-1 truncate text-xs font-medium text-neutral-300">
+						{result.movie.title}
+					</p>
+				{/snippet}
+
+				<div class="mt-6 grid gap-3 text-left {galleryGridClass}">
 					{#each results as result (result.movie.id)}
-						<a href="/movie/{result.movie.id}" class="group block" title={result.movie.title}>
-							{#if posterUrl(result.movie.posterPath)}
-								<img
-									src={posterUrl(result.movie.posterPath)}
-									alt=""
-									class="w-full rounded-lg object-cover shadow-md transition group-hover:opacity-80"
-								/>
-							{:else}
-								<div
-									class="flex aspect-[2/3] items-center justify-center rounded-lg bg-neutral-800 text-xl"
-								>
-									🎬
-								</div>
-							{/if}
-							<p class="mt-1 truncate text-xs font-medium text-neutral-300">
-								{result.movie.title}
-							</p>
-						</a>
+						{#if needsClaiming}
+							<button
+								type="button"
+								onclick={() => claimMovie(result.movie.id)}
+								class="group relative block text-left"
+								title={result.movie.title}
+							>
+								{@render resultThumb(result)}
+							</button>
+						{:else}
+							<a
+								href="/movie/{result.movie.id}"
+								class="group relative block text-left"
+								title={result.movie.title}
+							>
+								{@render resultThumb(result)}
+							</a>
+						{/if}
 					{/each}
 				</div>
 			</div>
