@@ -1,10 +1,54 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition';
 	import { posterUrl } from '$lib/poster';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	const rotations = [-3, 2, -1.5, 3, -2.5, 1, -1, 2.5, -3, 1.5, -2, 3];
+	const GRID_COLS = 3;
+	const WAVE_STEP_MS = 90;
+	const WAVE_INTERVAL_MS = 6000;
+
+	let pool = $state(shuffle(data.posters));
+	let cells = $state(pool.slice(0, 12));
+	let poolIndex = $state(12);
+
+	function shuffle<T>(arr: T[]) {
+		return [...arr].sort(() => Math.random() - 0.5);
+	}
+
+	function nextPoster() {
+		if (pool.length === 0) return null;
+		if (poolIndex >= pool.length) {
+			pool = shuffle(pool);
+			poolIndex = 0;
+		}
+		const next = pool[poolIndex];
+		poolIndex += 1;
+		return next;
+	}
+
+	// Fires a diagonal wave through the grid: each cell's update delay is
+	// proportional to its distance from the top-left corner, so the swap
+	// sweeps top-left -> bottom-right instead of updating all at once.
+	function triggerWave() {
+		if (pool.length <= cells.length) return;
+		for (let i = 0; i < cells.length; i++) {
+			const row = Math.floor(i / GRID_COLS);
+			const col = i % GRID_COLS;
+			const delay = (row + col) * WAVE_STEP_MS;
+			setTimeout(() => {
+				const next = nextPoster();
+				if (next) cells[i] = next;
+			}, delay);
+		}
+	}
+
+	$effect(() => {
+		const interval = setInterval(triggerWave, WAVE_INTERVAL_MS);
+		return () => clearInterval(interval);
+	});
 </script>
 
 <svelte:head>
@@ -16,12 +60,17 @@
 <div class="mt-6 grid gap-x-10 gap-y-12 lg:grid-cols-[1fr_320px]">
 	<div class="max-w-2xl space-y-5 text-neutral-300">
 		<p class="leading-relaxed">
-			Every family has one — the film, franchise, or decade-spanning universe everyone else
-			adores, quotes endlessly, and rewatches on a loop, that you just don't get. You paid
-			attention. You tried. And you still walked away with more questions than answers. This
-			isn't a hit piece on anyone's favourite film — if you love it, genuinely, that's wonderful.
-			This site just exists to log our side of the story, honestly, for an audience of exactly
-			two. Well. Now you too, apparently.
+			This started with my daughter and me, and the first Harry Potter film. We'd heard it was a
+			childhood-defining classic, so we sat down, paid proper attention — and walked away
+			gobsmacked. Not by the magic. By how many holes were in the plot. So we kept going, on
+			purpose: Twilight, the X-Men, Star Wars — deliberately picking things everyone else adored,
+			just to see if we'd feel differently. We usually didn't.
+		</p>
+
+		<p class="leading-relaxed">
+			This isn't a hit piece on anyone's favourite film — if you love it, genuinely, that's
+			wonderful. This site just exists to log our side of the story, honestly, for an audience
+			that used to be exactly two. Well. Now you too, apparently.
 		</p>
 
 		<p class="leading-relaxed">
@@ -105,23 +154,26 @@
 		</a>
 	</div>
 
-	{#if data.posters.length > 0}
+	{#if cells.length > 0}
 		<div class="lg:sticky lg:top-24 lg:self-start">
 			<p class="mb-3 text-xs font-semibold tracking-widest text-neutral-500 uppercase">
 				A few of the accused
 			</p>
-			<div class="grid grid-cols-3 gap-3 lg:grid-cols-3">
-				{#each data.posters as p, i (p.id)}
+			<div class="grid grid-cols-3 gap-3">
+				{#each cells as cell, i (i)}
 					<a
-						href="/movie/{p.id}"
+						href="/movie/{cell.id}"
 						class="block overflow-hidden rounded-lg shadow-lg transition duration-200 hover:z-10 hover:rotate-0 hover:scale-110"
 						style="rotate: {rotations[i % rotations.length]}deg;"
 					>
-						<img
-							src={posterUrl(p.posterPath)}
-							alt={p.title}
-							class="aspect-2/3 w-full rounded-lg border border-neutral-800 object-cover"
-						/>
+						{#key cell.id}
+							<img
+								src={posterUrl(cell.posterPath)}
+								alt={cell.title}
+								class="aspect-2/3 w-full rounded-lg border border-neutral-800 object-cover"
+								transition:fade={{ duration: 400 }}
+							/>
+						{/key}
 					</a>
 				{/each}
 			</div>

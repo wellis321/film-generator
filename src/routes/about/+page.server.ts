@@ -9,7 +9,7 @@ export const load: PageServerLoad = async () => {
 		.from(movie)
 		.where(isNotNull(movie.posterPath))
 		.orderBy(sql`RAND()`)
-		.limit(12);
+		.limit(48);
 
 	return { posters };
 };
