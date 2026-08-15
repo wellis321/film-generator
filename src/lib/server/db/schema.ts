@@ -52,6 +52,22 @@ export const emailVerificationToken = mysqlTable('email_verification_token', {
 	expiresAt: timestamp('expires_at').notNull()
 });
 
+// A logged-in user's saved roster of "who's picking" characters for the
+// bracket spinner. Keyed on (userId, name) rather than a client-tracked row
+// id, so renaming a slot starts a fresh character (0 wins) but re-using an
+// existing name — even after removing and re-adding it — keeps its tally.
+export const playerCharacter = mysqlTable(
+	'player_character',
+	{
+		id: int('id').primaryKey().autoincrement(),
+		userId: int('user_id').notNull(),
+		name: varchar('name', { length: 100 }).notNull(),
+		position: int('position').notNull().default(0),
+		wins: int('wins').notNull().default(0)
+	},
+	(table) => [uniqueIndex('player_character_user_id_name_idx').on(table.userId, table.name)]
+);
+
 // One row per (user, movie): that user's personal watched/rating/review/
 // exclusion state for that title.
 export const userMovie = mysqlTable(

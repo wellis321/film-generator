@@ -14,9 +14,14 @@
 		noSurvivorsQuip,
 		championClaimedQuip
 	} from '$lib/player-quips';
+	import { page } from '$app/state';
+	import { invalidateAll } from '$app/navigation';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	const user = $derived(page.data.user);
+	const winsByName = $derived(new Map(data.savedCharacters.map((c) => [c.name, c.wins])));
 
 	const heroSubtitle = randomHeroSubtitle();
 	const ITEM_HEIGHT = 240;
@@ -49,7 +54,9 @@
 	// each right after round 1, then we narrate whether their picks survive
 	// each subsequent round.
 	const CLAIMS_PER_PLAYER = 2;
-	let players = $state<string[]>([]);
+	let players = $state<string[]>(data.savedCharacters.map((c) => c.name));
+	let savingCharacters = $state(false);
+	let savedFeedback = $state(false);
 	let claims = $state<Map<number, number>>(new Map());
 	let claimingPlayerIndex = $state(0);
 	let claimsCollected = $state(false);
@@ -97,13 +104,6 @@
 			'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center'
 	);
 	const needsClaiming = $derived(roundComplete && players.length > 0 && !claimsCollected);
-
-	$effect(() => {
-		if (needsClaiming && allClaimsComplete) {
-			claimsCollected = true;
-			survivingPlayerIndices = playersWithClaims();
-		}
-	});
 
 	// The dialog scrolls internally, so newly landed picks append below the
 	// fold during a fast, large round — follow them down as they arrive.
@@ -178,6 +178,44 @@
 		players[index] = pool[Math.floor(Math.random() * pool.length)];
 	}
 
+	async function saveCharacters() {
+		if (!user || savingCharacters) return;
+		savingCharacters = true;
+		const formData = new FormData();
+		for (const name of players) {
+			if (name.trim()) formData.append('name', name.trim());
+		}
+		await fetch('?/saveCharacters', { method: 'POST', body: formData });
+		await invalidateAll();
+		savingCharacters = false;
+		savedFeedback = true;
+		setTimeout(() => (savedFeedback = false), 2000);
+	}
+
+	function recordWin(name: string) {
+		if (!user) return;
+		const formData = new FormData();
+		formData.append('name', name);
+		fetch('?/recordWin', { method: 'POST', body: formData }).then(() => invalidateAll());
+	}
+
+	// Finds the next player who hasn't hit their quota yet, so auto-advance
+	// skips anyone already done instead of blindly moving one slot forward —
+	// important once people can jump around via the pills below instead of
+	// only ever moving strictly in turn order.
+	function nextIncompleteFrom(startIndex: number) {
+		for (let offset = 1; offset <= players.length; offset++) {
+			const idx = (startIndex + offset) % players.length;
+			if (countFor(idx) < CLAIMS_PER_PLAYER) return idx;
+		}
+		return startIndex;
+	}
+
+	function setActiveClaimer(index: number) {
+		if (!needsClaiming) return;
+		claimingPlayerIndex = index;
+	}
+
 	function claimMovie(movieId: number) {
 		if (!needsClaiming) return;
 		const owner = claims.get(movieId);
@@ -191,11 +229,8 @@
 		if (countFor(claimingPlayerIndex) >= CLAIMS_PER_PLAYER) return;
 		claims.set(movieId, claimingPlayerIndex);
 		claims = new Map(claims);
-		if (
-			countFor(claimingPlayerIndex) >= CLAIMS_PER_PLAYER &&
-			claimingPlayerIndex < players.length - 1
-		) {
-			claimingPlayerIndex += 1;
+		if (countFor(claimingPlayerIndex) >= CLAIMS_PER_PLAYER) {
+			claimingPlayerIndex = nextIncompleteFrom(claimingPlayerIndex);
 		}
 	}
 
@@ -205,7 +240,11 @@
 		return withClaims;
 	}
 
-	function skipClaiming() {
+	// Used both by "Skip picks" (bail out early, some players may have
+	// nothing claimed) and "Continue" (everyone's happy with their picks) —
+	// claiming only ever finalizes on an explicit click, never automatically,
+	// so there's always a chance to revisit and change a choice first.
+	function finalizeClaims() {
 		claimsCollected = true;
 		survivingPlayerIndices = playersWithClaims();
 	}
@@ -298,6 +337,7 @@
 				const winnerIndex = claims.get(champion.movie.id);
 				if (winnerIndex !== undefined) {
 					roundNarration = championClaimedQuip(playerNames[winnerIndex]);
+					recordWin(playerNames[winnerIndex]);
 				} else if (newlyEliminated.length > 0) {
 					roundNarration = `${eliminatedQuip(newlyEliminated.map((i) => playerNames[i]))} ${noSurvivorsQuip()}`;
 				} else {
@@ -355,6 +395,12 @@
 			<p class="text-sm text-neutral-500">
 				Who's picking? <span class="text-neutral-600">(optional)</span>
 			</p>
+			{#if !user}
+				<p class="mt-0.5 text-xs text-neutral-600">
+					<a href="/login" class="text-amber-400/80 hover:underline">Log in</a> to save your characters
+					and track their wins.
+				</p>
+			{/if}
 			<div class="mt-2 space-y-2">
 				{#each players as _, i (i)}
 					<div class="flex items-center gap-2">
@@ -368,6 +414,12 @@
 							bind:value={players[i]}
 							class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none"
 						/>
+						{#if user && winsByName.get(players[i].trim())}
+							<span
+								class="flex-shrink-0 text-xs font-semibold text-amber-400"
+								title="Wins with this character">🏆 {winsByName.get(players[i].trim())}</span
+							>
+						{/if}
 						<button
 							type="button"
 							onclick={() => randomNameFor(i)}
@@ -387,15 +439,23 @@
 					</div>
 				{/each}
 			</div>
-			{#if players.length < 5}
-				<button
-					type="button"
-					onclick={addPlayer}
-					class="mt-2 text-sm text-amber-400 hover:underline"
-				>
-					+ Add player
-				</button>
-			{/if}
+			<div class="mt-2 flex items-center gap-4">
+				{#if players.length < 5}
+					<button type="button" onclick={addPlayer} class="text-sm text-amber-400 hover:underline">
+						+ Add player
+					</button>
+				{/if}
+				{#if user && players.length > 0}
+					<button
+						type="button"
+						onclick={saveCharacters}
+						disabled={savingCharacters}
+						class="text-sm text-neutral-400 hover:text-neutral-200 disabled:cursor-not-allowed"
+					>
+						{savedFeedback ? 'Saved ✓' : savingCharacters ? 'Saving…' : '💾 Save characters'}
+					</button>
+				{/if}
+			</div>
 		</div>
 
 		<button
@@ -493,13 +553,45 @@
 					{newBracketLabel}
 				</button>
 			{:else if needsClaiming}
-				<p class="text-lg font-semibold {playerColors[claimingPlayerIndex % playerColors.length].text}">
-					{playerNames[claimingPlayerIndex]}'s turn — pick {CLAIMS_PER_PLAYER -
-						countFor(claimingPlayerIndex)} more
+				<div class="flex flex-wrap items-center justify-center gap-2">
+					{#each playerNames as name, i (i)}
+						<button
+							type="button"
+							onclick={() => setActiveClaimer(i)}
+							class="rounded-full border px-3 py-1 text-sm font-medium transition {i ===
+							claimingPlayerIndex
+								? `border-current ${playerColors[i % playerColors.length].text}`
+								: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
+						>
+							{name} ({countFor(i)}/{CLAIMS_PER_PLAYER})
+						</button>
+					{/each}
+				</div>
+				<p class="mt-2 text-sm text-neutral-500">
+					Tap a poster to claim it for
+					<span
+						class="font-semibold {playerColors[claimingPlayerIndex % playerColors.length].text}"
+						>{playerNames[claimingPlayerIndex]}</span
+					>
+					— tap it again to undo, or pick another name above to switch.
 				</p>
-				<button type="button" onclick={skipClaiming} class="mt-2 text-sm text-neutral-500 hover:underline">
-					Skip picks
-				</button>
+				{#if allClaimsComplete}
+					<button
+						type="button"
+						onclick={finalizeClaims}
+						class="mt-3 rounded-full bg-amber-400 px-6 py-2 text-sm font-bold text-neutral-950 transition hover:bg-amber-300"
+					>
+						Continue → Narrow it down
+					</button>
+				{:else}
+					<button
+						type="button"
+						onclick={finalizeClaims}
+						class="mt-2 text-sm text-neutral-500 hover:underline"
+					>
+						Skip picks
+					</button>
+				{/if}
 			{:else if roundComplete}
 				<button
 					onclick={continueBracket}
