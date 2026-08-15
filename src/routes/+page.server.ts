@@ -1,9 +1,14 @@
 import { db } from '$lib/server/db';
-import { movie } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { movie, userMovie } from '$lib/server/db/schema';
+import { and, eq, sql } from 'drizzle-orm';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+	// -1 never matches a real user id, so logged-out visitors get a LEFT JOIN
+	// that finds nothing — every movie comes back with watched/excluded both
+	// false, i.e. the full, unfiltered pool.
+	const userId = locals.user?.id ?? -1;
+
 	const movies = await db
 		.select({
 			id: movie.id,
@@ -11,10 +16,11 @@ export const load: PageServerLoad = async () => {
 			year: movie.year,
 			posterPath: movie.posterPath,
 			mediaType: movie.mediaType,
-			watched: movie.watched
+			watched: sql<number>`COALESCE(${userMovie.watched}, false)`
 		})
 		.from(movie)
-		.where(eq(movie.excluded, false));
+		.leftJoin(userMovie, and(eq(userMovie.movieId, movie.id), eq(userMovie.userId, userId)))
+		.where(sql`COALESCE(${userMovie.excluded}, false) = false`);
 
-	return { movies };
+	return { movies: movies.map((m) => ({ ...m, watched: Boolean(m.watched) })) };
 };

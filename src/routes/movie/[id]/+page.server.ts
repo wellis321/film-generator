@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db';
-import { movie } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { movie, userMovie } from '$lib/server/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -10,14 +10,38 @@ async function loadMovie(id: number) {
 	return row;
 }
 
-export const load: PageServerLoad = async ({ params }) => {
+async function loadUserMovie(userId: number, movieId: number) {
+	const [row] = await db
+		.select()
+		.from(userMovie)
+		.where(and(eq(userMovie.userId, userId), eq(userMovie.movieId, movieId)))
+		.limit(1);
+	return row ?? null;
+}
+
+export const load: PageServerLoad = async ({ params, locals }) => {
 	const id = Number(params.id);
 	if (!Number.isInteger(id)) error(404, 'Movie not found');
-	return { movie: await loadMovie(id) };
+
+	const movieRow = await loadMovie(id);
+	const userMovieRow = locals.user ? await loadUserMovie(locals.user.id, id) : null;
+
+	return {
+		movie: movieRow,
+		userMovie: userMovieRow ?? {
+			watched: false,
+			watchedAt: null,
+			excluded: false,
+			ourRating: null,
+			ourReview: null
+		}
+	};
 };
 
 export const actions: Actions = {
-	save: async ({ request, params }) => {
+	save: async ({ request, params, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Log in to save a review.' });
+
 		const id = Number(params.id);
 		if (!Number.isInteger(id)) error(404, 'Movie not found');
 
@@ -30,47 +54,71 @@ export const actions: Actions = {
 			return fail(400, { error: 'Rating must be a whole number between 1 and 10.' });
 		}
 
-		const existing = await loadMovie(id);
+		await loadMovie(id);
+		const existing = await loadUserMovie(locals.user.id, id);
 
 		await db
-			.update(movie)
-			.set({
+			.insert(userMovie)
+			.values({
+				userId: locals.user.id,
+				movieId: id,
 				ourRating: rating,
 				ourReview: review || null,
 				watched: true,
-				watchedAt: existing.watchedAt ?? new Date()
+				watchedAt: existing?.watchedAt ?? new Date()
 			})
-			.where(eq(movie.id, id));
+			.onDuplicateKeyUpdate({
+				set: {
+					ourRating: rating,
+					ourReview: review || null,
+					watched: true,
+					watchedAt: existing?.watchedAt ?? new Date()
+				}
+			});
 
 		return { success: true };
 	},
 
-	unwatch: async ({ params }) => {
+	unwatch: async ({ params, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Log in to do that.' });
+
 		const id = Number(params.id);
 		if (!Number.isInteger(id)) error(404, 'Movie not found');
 
 		await db
-			.update(movie)
-			.set({ watched: false, watchedAt: null, ourRating: null, ourReview: null })
-			.where(eq(movie.id, id));
+			.insert(userMovie)
+			.values({ userId: locals.user.id, movieId: id, watched: false })
+			.onDuplicateKeyUpdate({
+				set: { watched: false, watchedAt: null, ourRating: null, ourReview: null }
+			});
 
 		return { success: true };
 	},
 
-	exclude: async ({ params }) => {
+	exclude: async ({ params, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Log in to do that.' });
+
 		const id = Number(params.id);
 		if (!Number.isInteger(id)) error(404, 'Movie not found');
 
-		await db.update(movie).set({ excluded: true }).where(eq(movie.id, id));
+		await db
+			.insert(userMovie)
+			.values({ userId: locals.user.id, movieId: id, excluded: true })
+			.onDuplicateKeyUpdate({ set: { excluded: true } });
 
 		return { success: true };
 	},
 
-	include: async ({ params }) => {
+	include: async ({ params, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Log in to do that.' });
+
 		const id = Number(params.id);
 		if (!Number.isInteger(id)) error(404, 'Movie not found');
 
-		await db.update(movie).set({ excluded: false }).where(eq(movie.id, id));
+		await db
+			.insert(userMovie)
+			.values({ userId: locals.user.id, movieId: id, excluded: false })
+			.onDuplicateKeyUpdate({ set: { excluded: false } });
 
 		return { success: true };
 	}

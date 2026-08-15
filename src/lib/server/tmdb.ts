@@ -66,3 +66,41 @@ export async function searchTmdb(
 		tmdbVoteCount: best.vote_count ?? 0
 	};
 }
+
+// Preferred country order for picking a certification when multiple are
+// available — GB first since that's the primary audience for this app, US
+// as the most widely recognised fallback.
+const CERTIFICATION_COUNTRIES = ['GB', 'US'];
+
+export async function fetchCertification(
+	apiKey: string,
+	tmdbId: number,
+	mediaType: MediaType
+): Promise<string | null> {
+	const endpoint =
+		mediaType === 'movie'
+			? `${TMDB_API}/movie/${tmdbId}/release_dates`
+			: `${TMDB_API}/tv/${tmdbId}/content_ratings`;
+
+	const res = await fetch(endpoint, {
+		headers: { Authorization: `Bearer ${apiKey}`, accept: 'application/json' }
+	});
+	if (!res.ok) return null;
+
+	const data = await res.json();
+	const results: any[] = data.results ?? [];
+
+	for (const country of CERTIFICATION_COUNTRIES) {
+		const entry = results.find((r) => r.iso_3166_1 === country);
+		if (!entry) continue;
+
+		if (mediaType === 'movie') {
+			const withCert = (entry.release_dates ?? []).find((rd: any) => rd.certification?.trim());
+			if (withCert) return withCert.certification.trim();
+		} else if (entry.rating?.trim()) {
+			return entry.rating.trim();
+		}
+	}
+
+	return null;
+}

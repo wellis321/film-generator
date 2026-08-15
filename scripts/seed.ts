@@ -3,7 +3,7 @@ import mysql from 'mysql2/promise';
 import { drizzle } from 'drizzle-orm/mysql2';
 import { eq, and } from 'drizzle-orm';
 import { movie } from '../src/lib/server/db/schema';
-import { searchTmdb } from '../src/lib/server/tmdb';
+import { searchTmdb, fetchCertification } from '../src/lib/server/tmdb';
 import { seedList } from '../src/lib/server/seed-list';
 
 const apiKey = process.env.TMDB_API_KEY;
@@ -37,6 +37,8 @@ for (const entry of seedList) {
 		continue;
 	}
 
+	const certification = await fetchCertification(apiKey, result.tmdbId, entry.mediaType);
+
 	await db.insert(movie).values({
 		tmdbId: result.tmdbId,
 		mediaType: entry.mediaType,
@@ -45,7 +47,8 @@ for (const entry of seedList) {
 		posterPath: result.posterPath,
 		synopsis: result.synopsis,
 		tmdbRating: result.tmdbRating,
-		tmdbVoteCount: result.tmdbVoteCount
+		tmdbVoteCount: result.tmdbVoteCount,
+		certification
 	});
 	added++;
 	console.log(`+ ${result.title} (${result.year ?? 'n/a'})`);
