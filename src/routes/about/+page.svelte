@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
 	import { posterUrl } from '$lib/poster';
 	import type { PageData } from './$types';
 
@@ -7,12 +6,14 @@
 
 	const rotations = [-3, 2, -1.5, 3, -2.5, 1, -1, 2.5, -3, 1.5, -2, 3];
 	const GRID_COLS = 3;
-	const WAVE_STEP_MS = 90;
-	const WAVE_INTERVAL_MS = 6000;
+	const WAVE_STEP_MS = 130;
+	const FADE_MS = 350;
+	const WAVE_INTERVAL_MS = 15000;
 
 	let pool = $state(shuffle(data.posters));
 	let cells = $state(pool.slice(0, 12));
 	let poolIndex = $state(12);
+	let hidden = $state(cells.map(() => false));
 
 	function shuffle<T>(arr: T[]) {
 		return [...arr].sort(() => Math.random() - 0.5);
@@ -32,6 +33,9 @@
 	// Fires a diagonal wave through the grid: each cell's update delay is
 	// proportional to its distance from the top-left corner, so the swap
 	// sweeps top-left -> bottom-right instead of updating all at once.
+	// Each cell keeps the same <img> element throughout and just toggles a
+	// CSS opacity class around the src swap, rather than mounting/unmounting
+	// elements — simpler and avoids any transition/layout glitches.
 	function triggerWave() {
 		if (pool.length <= cells.length) return;
 		for (let i = 0; i < cells.length; i++) {
@@ -39,8 +43,12 @@
 			const col = i % GRID_COLS;
 			const delay = (row + col) * WAVE_STEP_MS;
 			setTimeout(() => {
-				const next = nextPoster();
-				if (next) cells[i] = next;
+				hidden[i] = true;
+				setTimeout(() => {
+					const next = nextPoster();
+					if (next) cells[i] = next;
+					hidden[i] = false;
+				}, FADE_MS);
 			}, delay);
 		}
 	}
@@ -166,14 +174,15 @@
 						class="block overflow-hidden rounded-lg shadow-lg transition duration-200 hover:z-10 hover:rotate-0 hover:scale-110"
 						style="rotate: {rotations[i % rotations.length]}deg;"
 					>
-						{#key cell.id}
-							<img
-								src={posterUrl(cell.posterPath)}
-								alt={cell.title}
-								class="aspect-2/3 w-full rounded-lg border border-neutral-800 object-cover"
-								transition:fade={{ duration: 400 }}
-							/>
-						{/key}
+						<img
+							src={posterUrl(cell.posterPath)}
+							alt={cell.title}
+							class="aspect-2/3 w-full rounded-lg border border-neutral-800 object-cover transition-opacity duration-[350ms] {hidden[
+								i
+							]
+								? 'opacity-0'
+								: 'opacity-100'}"
+						/>
 					</a>
 				{/each}
 			</div>
