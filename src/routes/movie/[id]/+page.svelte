@@ -17,7 +17,12 @@
 	<title>{data.movie.title} — Regretometer</title>
 </svelte:head>
 
-<a href="/" class="text-sm text-neutral-500 transition hover:text-neutral-300">← Back to the wheel</a>
+<a
+	href="/"
+	class="inline-flex items-center gap-1.5 rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-300 transition hover:border-amber-400/40 hover:text-amber-400"
+>
+	← Back to the wheel
+</a>
 
 <div class="mt-6 flex flex-col gap-8 sm:flex-row">
 	<div class="w-full max-w-64 flex-shrink-0 self-start">
