@@ -106,7 +106,10 @@
 						ontransitionend={onTransitionEnd}
 					>
 						{#each sequence as item, i (i)}
-							<div class="flex h-60 items-center gap-4 px-8">
+							<a
+								href="/movie/{item.id}"
+								class="flex h-60 items-center gap-4 px-8 transition-colors hover:bg-neutral-800/40"
+							>
 								{#if posterUrl(item.posterPath)}
 									<img
 										src={posterUrl(item.posterPath)}
@@ -127,7 +130,7 @@
 										{item.mediaType === 'tv' ? '· TV Series' : ''}
 									</p>
 								</div>
-							</div>
+							</a>
 						{/each}
 					</div>
 				{:else}
