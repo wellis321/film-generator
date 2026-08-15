@@ -5,7 +5,21 @@ export const heroSubtitles = [
 	'Free will is an illusion. This wheel is real.',
 	"Press it. There's no take-backs.",
 	'A random number generator, dressed up as fate.',
-	'Democracy had its chance. Now the wheel decides.'
+	'Democracy had its chance. Now the wheel decides.',
+	'No refunds. No regrets. Well, mostly regrets.',
+	'Consult no one. Press the button.',
+	'The wheel has never once had our best interests at heart.',
+	'One press. Infinite consequences. Mild consequences, but still.',
+	'We built this so we could blame something other than ourselves.',
+	'Resistance is futile. The wheel always wins.',
+	'A tiny act of self-sabotage, gamified.',
+	'This is how the evening gets decided now. Forever.',
+	'Somewhere between fate and a bad decision.',
+	'A button, a wheel, and a complete lack of accountability.',
+	'The wheel does not care about your Tuesday plans.',
+	'Chosen by chance. Endured by choice.',
+	'Whatever happens next is not on us.',
+	'Spin first. Regret later. Regret is non-negotiable.'
 ];
 
 export function randomHeroSubtitle() {

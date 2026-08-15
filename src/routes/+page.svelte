@@ -3,6 +3,7 @@
 	import { randomReaction } from '$lib/spin-reactions';
 	import { randomHeroSubtitle } from '$lib/hero-subtitles';
 	import { randomSpinAgainLabel } from '$lib/spin-button-labels';
+	import { splitSentences } from '$lib/split-sentences';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -145,7 +146,11 @@
 
 		{#if winner && !spinning}
 			<div class="mx-auto mt-10 max-w-sm text-center">
-				<p class="text-neutral-400 italic">{reaction}</p>
+				<div class="space-y-1 text-lg text-neutral-300 italic">
+					{#each splitSentences(reaction) as line (line)}
+						<p>{line}</p>
+					{/each}
+				</div>
 				<a
 					href="/movie/{winner.id}"
 					class="mt-4 inline-block rounded-full bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-white"
