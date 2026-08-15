@@ -7,7 +7,8 @@
 
 	const links = [
 		{ href: '/', label: 'Spin' },
-		{ href: '/watched', label: 'Watched' }
+		{ href: '/watched', label: 'Watched' },
+		{ href: '/about', label: 'About' }
 	];
 </script>
 
