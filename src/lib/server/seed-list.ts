@@ -522,5 +522,66 @@ export const seedList: SeedEntry[] = [
 	{ title: 'Billy Madison', mediaType: 'movie', year: '1995' },
 	{ title: 'Beethoven', mediaType: 'movie', year: '1992' },
 	{ title: 'Honey, I Shrunk the Kids', mediaType: 'movie', year: '1989' },
-	{ title: 'The Sandlot', mediaType: 'movie', year: '1993' }
+	{ title: 'The Sandlot', mediaType: 'movie', year: '1993' },
+
+	// More cult / comedy favourites
+	{ title: 'Scott Pilgrim vs. the World', mediaType: 'movie', year: '2010' },
+	{ title: 'Shallow Hal', mediaType: 'movie', year: '2001' },
+	{ title: 'Stuart Little', mediaType: 'movie', year: '1999' },
+	{ title: 'Stuart Little 2', mediaType: 'movie', year: '2002' },
+	{ title: 'The Talented Mr. Ripley', mediaType: 'movie', year: '1999' },
+	{ title: "Wayne's World", mediaType: 'movie', year: '1992' },
+	{ title: "Wayne's World 2", mediaType: 'movie', year: '1993' },
+	{ title: 'Who Framed Roger Rabbit', mediaType: 'movie', year: '1988' },
+	{ title: 'Meet Joe Black', mediaType: 'movie', year: '1998' },
+	{ title: 'Pretty Woman', mediaType: 'movie', year: '1990' },
+	{ title: 'My Cousin Vinny', mediaType: 'movie', year: '1992' },
+	{ title: 'Jerry Maguire', mediaType: 'movie', year: '1996' },
+	{ title: 'Being John Malkovich', mediaType: 'movie', year: '1999' },
+	{ title: 'Billy Elliot', mediaType: 'movie', year: '2000' },
+
+	// Diary of a Wimpy Kid
+	{ title: 'Diary of a Wimpy Kid', mediaType: 'movie', year: '2010' },
+	{ title: 'Diary of a Wimpy Kid: Rodrick Rules', mediaType: 'movie', year: '2011' },
+	{ title: 'Diary of a Wimpy Kid: Dog Days', mediaType: 'movie', year: '2012' },
+
+	// Robin Hood
+	{ title: 'Robin Hood: Prince of Thieves', mediaType: 'movie', year: '1991' },
+	{ title: 'Robin Hood', mediaType: 'movie', year: '1973' },
+
+	// Tim Burton and that general vein
+	{ title: 'Donnie Darko', mediaType: 'movie', year: '2001' },
+	{ title: 'Edward Scissorhands', mediaType: 'movie', year: '1990' },
+	{ title: 'Beetlejuice', mediaType: 'movie', year: '1988' },
+	{ title: 'Batman', mediaType: 'movie', year: '1989' },
+	{ title: 'Sleepy Hollow', mediaType: 'movie', year: '1999' },
+	{ title: 'Big Fish', mediaType: 'movie', year: '2003' },
+	{ title: 'Corpse Bride', mediaType: 'movie', year: '2005' },
+	{ title: 'Alice in Wonderland', mediaType: 'movie', year: '2010' },
+	{ title: 'Sweeney Todd: The Demon Barber of Fleet Street', mediaType: 'movie', year: '2007' },
+	{ title: 'Charlie and the Chocolate Factory', mediaType: 'movie', year: '2005' },
+	{ title: 'James and the Giant Peach', mediaType: 'movie', year: '1996' },
+	{ title: 'The Nightmare Before Christmas', mediaType: 'movie', year: '1993' },
+	{ title: 'Coraline', mediaType: 'movie', year: '2009' },
+
+	// More beloved animated films
+	{ title: 'Ralph Breaks the Internet', mediaType: 'movie', year: '2018' },
+	{ title: 'Tangled', mediaType: 'movie', year: '2010' },
+	{ title: 'Encanto', mediaType: 'movie', year: '2021' },
+	{ title: 'Big Hero 6', mediaType: 'movie', year: '2014' },
+	{ title: 'Brave', mediaType: 'movie', year: '2012' },
+
+	// Chipmunks
+	{ title: 'Alvin and the Chipmunks', mediaType: 'movie', year: '2007' },
+	{ title: 'Alvin and the Chipmunks: The Squeakquel', mediaType: 'movie', year: '2009' },
+
+	// Bill & Ted
+	{ title: "Bill & Ted's Excellent Adventure", mediaType: 'movie', year: '1989' },
+	{ title: "Bill & Ted's Bogus Journey", mediaType: 'movie', year: '1991' },
+	{ title: 'Bill & Ted Face the Music', mediaType: 'movie', year: '2020' },
+
+	// Sacha Baron Cohen mockumentaries
+	{ title: 'Borat', mediaType: 'movie', year: '2006' },
+	{ title: 'Borat Subsequent Moviefilm', mediaType: 'movie', year: '2020' },
+	{ title: 'Brüno', mediaType: 'movie', year: '2009' }
 ];
