@@ -19,6 +19,8 @@
 	});
 
 	let selectedBracketSize = $state<number>(16);
+	let dialogEl: HTMLDialogElement;
+	let scrollContainer: HTMLDivElement;
 
 	let spinning = $state(false);
 	let sequence = $state<typeof data.movies>([]);
@@ -33,12 +35,36 @@
 	let closingQuip = $state('');
 	let champion = $state<{ movie: (typeof data.movies)[number]; quip: string } | null>(null);
 	let newBracketLabel = $state('Spin again');
+	let pendingSpinTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	const bracketActive = $derived(spinning || spinsRemaining > 0);
 	const roundComplete = $derived(
 		!bracketActive && roundSize > 0 && results.length === roundSize && !champion
 	);
 	const nextRoundSize = $derived(roundSize > 1 ? Math.ceil(roundSize / 2) : 0);
+
+	// The dialog scrolls internally, so newly landed picks append below the
+	// fold during a fast, large round — follow them down as they arrive.
+	$effect(() => {
+		results.length;
+		if (bracketActive && scrollContainer) {
+			scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+		}
+	});
+
+	// Big rounds (32/64) would take minutes at the original dramatic pace, so
+	// spins get quicker the larger the round — full drama is saved for the
+	// small, decisive rounds where it actually matters.
+	function transitionDurationFor(size: number) {
+		if (size >= 32) return 1000;
+		if (size >= 8) return 1800;
+		return 3200;
+	}
+	function pauseDurationFor(size: number) {
+		if (size >= 32) return 200;
+		if (size >= 8) return 300;
+		return 450;
+	}
 
 	function pickFromRoundPool(excludeIds: Set<number>) {
 		const candidates = roundPool.filter((m) => !excludeIds.has(m.id));
@@ -68,7 +94,7 @@
 
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
-				transitionMs = 3200;
+				transitionMs = transitionDurationFor(roundSize);
 				translateY = -(seq.length - 1) * ITEM_HEIGHT;
 			});
 		});
@@ -87,6 +113,7 @@
 		if (bracketActive || fullPool.length === 0) return;
 		champion = null;
 		roundPool = fullPool;
+		dialogEl.showModal();
 		beginRound(Math.min(selectedBracketSize, fullPool.length));
 	}
 
@@ -96,8 +123,17 @@
 		beginRound(nextRoundSize);
 	}
 
-	function resetBracket() {
+	// Fires on every dialog close, however it happened — the ✕ button,
+	// Escape, or finishing up after a champion is crowned. All of those mean
+	// "I'm done with this bracket," so they all get the same full reset.
+	function onDialogClose() {
+		if (pendingSpinTimeout) {
+			clearTimeout(pendingSpinTimeout);
+			pendingSpinTimeout = null;
+		}
+		spinning = false;
 		roundSize = 0;
+		spinsRemaining = 0;
 		champion = null;
 		results = [];
 		closingQuip = '';
@@ -113,7 +149,10 @@
 		spinsRemaining -= 1;
 
 		if (spinsRemaining > 0) {
-			setTimeout(runSpin, 450);
+			pendingSpinTimeout = setTimeout(() => {
+				pendingSpinTimeout = null;
+				runSpin();
+			}, pauseDurationFor(roundSize));
 		} else if (roundSize === 1) {
 			champion = results[0];
 			newBracketLabel = randomSpinAgainLabel();
@@ -140,7 +179,50 @@
 			No movies in the pool yet — run <code class="text-amber-400">npm run db:seed</code> to load some.
 		</p>
 	{:else}
-		<div class="relative mx-auto mt-10 max-w-sm">
+		<div class="mx-auto mt-10 flex max-w-lg flex-wrap justify-center gap-2">
+			{#each bracketSizes as size (size)}
+				<button
+					type="button"
+					onclick={() => (selectedBracketSize = size)}
+					class="rounded-full border px-4 py-1.5 text-sm font-medium transition {selectedBracketSize ===
+					size
+						? 'border-amber-400 bg-amber-400/10 text-amber-400'
+						: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
+				>
+					{bracketSizeLabels[size]} ({size})
+				</button>
+			{/each}
+		</div>
+
+		<button
+			onclick={startBracket}
+			class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+		>
+			Spin the wheel
+		</button>
+	{/if}
+</section>
+
+<dialog
+	bind:this={dialogEl}
+	onclose={onDialogClose}
+	class="m-auto w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-0 text-neutral-100 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+>
+	<div bind:this={scrollContainer} class="max-h-[85vh] overflow-y-auto p-6">
+		<div class="flex items-start justify-between gap-4">
+			<p class="text-sm font-semibold tracking-wide text-amber-400 uppercase">
+				{roundSize > 0 ? bracketSizeLabels[roundSize] : ''}
+			</p>
+			<button
+				onclick={() => dialogEl.close()}
+				aria-label="Stop and close"
+				class="rounded-full border border-neutral-800 px-2.5 py-1 text-sm text-neutral-500 transition hover:border-neutral-600 hover:text-neutral-300"
+			>
+				✕
+			</button>
+		</div>
+
+		<div class="relative mx-auto mt-4 max-w-sm">
 			<div
 				class="pointer-events-none absolute top-1/2 left-0 z-20 h-0 w-0 -translate-x-1/2 -translate-y-1/2 border-y-[12px] border-l-[16px] border-y-transparent border-l-amber-400"
 			></div>
@@ -198,57 +280,31 @@
 			</div>
 		</div>
 
-		{#if roundSize === 0}
-			<div class="mx-auto mt-6 flex max-w-lg flex-wrap justify-center gap-2">
-				{#each bracketSizes as size (size)}
-					<button
-						type="button"
-						onclick={() => (selectedBracketSize = size)}
-						class="rounded-full border px-4 py-1.5 text-sm font-medium transition {selectedBracketSize ===
-						size
-							? 'border-amber-400 bg-amber-400/10 text-amber-400'
-							: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
-					>
-						{bracketSizeLabels[size]} ({size})
-					</button>
-				{/each}
-			</div>
-		{/if}
+		<div class="mt-6 text-center">
+			{#if champion}
+				<button
+					onclick={() => dialogEl.close()}
+					class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+				>
+					{newBracketLabel}
+				</button>
+			{:else if roundComplete}
+				<button
+					onclick={continueBracket}
+					class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+				>
+					Narrow it down to the {bracketSizeLabels[nextRoundSize]}
+				</button>
+			{:else if bracketActive}
+				<p class="text-sm text-neutral-500">
+					spin {totalInBatch - spinsRemaining + 1} of {totalInBatch}
+				</p>
+			{/if}
+		</div>
 
 		{#if champion}
-			<button
-				onclick={resetBracket}
-				class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
-			>
-				{newBracketLabel}
-			</button>
-		{:else if roundComplete}
-			<button
-				onclick={continueBracket}
-				class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
-			>
-				Narrow it down to the {bracketSizeLabels[nextRoundSize]}
-			</button>
-		{:else}
-			<button
-				onclick={startBracket}
-				disabled={bracketActive}
-				class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{bracketActive ? 'Spinning…' : 'Spin the wheel'}
-			</button>
-		{/if}
-
-		{#if bracketActive}
-			<p class="mt-3 text-sm text-neutral-500">
-				{bracketSizeLabels[roundSize]} — spin {totalInBatch - spinsRemaining + 1} of {totalInBatch}
-			</p>
-		{/if}
-
-		{#if champion}
-			<div class="mx-auto mt-10 max-w-sm text-center">
-				<p class="text-sm font-semibold tracking-wide text-amber-400 uppercase">Champion</p>
-				<a href="/movie/{champion.movie.id}" class="group mt-4 block">
+			<div class="mx-auto mt-8 max-w-xs text-center">
+				<a href="/movie/{champion.movie.id}" class="group block">
 					{#if posterUrl(champion.movie.posterPath, 'w500')}
 						<img
 							src={posterUrl(champion.movie.posterPath, 'w500')}
@@ -281,48 +337,38 @@
 				</a>
 			</div>
 		{:else if results.length > 0}
-			<div class="mx-auto mt-10 max-w-3xl">
-				{#if roundSize > 0}
-					<p class="text-sm font-semibold tracking-wide text-neutral-500 uppercase">
-						{bracketSizeLabels[roundSize]}
-					</p>
-				{/if}
+			<div class="mt-8">
 				{#if closingQuip}
-					<div class="mt-2 space-y-1 text-center text-lg text-neutral-300 italic">
+					<div class="space-y-1 text-center text-lg text-neutral-300 italic">
 						{#each splitSentences(closingQuip) as line (line)}
 							<p>{line}</p>
 						{/each}
 					</div>
 				{/if}
 
-				<div class="mt-6 grid grid-cols-2 gap-5 text-left sm:grid-cols-3 md:grid-cols-5">
+				<div class="mt-6 grid grid-cols-4 gap-3 text-left sm:grid-cols-6 md:grid-cols-8">
 					{#each results as result (result.movie.id)}
-						<a href="/movie/{result.movie.id}" class="group block">
+						<a href="/movie/{result.movie.id}" class="group block" title={result.movie.title}>
 							{#if posterUrl(result.movie.posterPath)}
 								<img
 									src={posterUrl(result.movie.posterPath)}
 									alt=""
-									class="w-full rounded-xl object-cover shadow-lg transition group-hover:opacity-80"
+									class="w-full rounded-lg object-cover shadow-md transition group-hover:opacity-80"
 								/>
 							{:else}
 								<div
-									class="flex aspect-[2/3] items-center justify-center rounded-xl bg-neutral-800 text-3xl"
+									class="flex aspect-[2/3] items-center justify-center rounded-lg bg-neutral-800 text-xl"
 								>
 									🎬
 								</div>
 							{/if}
-							<p class="mt-2 truncate text-sm font-semibold text-neutral-100">
+							<p class="mt-1 truncate text-xs font-medium text-neutral-300">
 								{result.movie.title}
 							</p>
-							<p class="text-xs text-neutral-500">
-								{result.movie.year ?? ''}
-								{result.movie.mediaType === 'tv' ? '· TV Series' : ''}
-							</p>
-							<p class="mt-1 text-xs text-neutral-500 italic">{result.quip}</p>
 						</a>
 					{/each}
 				</div>
 			</div>
 		{/if}
-	{/if}
-</section>
+	</div>
+</dialog>
