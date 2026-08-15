@@ -38,6 +38,13 @@
 
 		{#if form?.error}
 			<p class="text-sm text-red-400">{form.error}</p>
+			{#if form?.unverified}
+				<p class="text-sm text-neutral-500">
+					<a href="/resend-verification" class="text-amber-400 hover:underline"
+						>Resend confirmation email</a
+					>
+				</p>
+			{/if}
 		{/if}
 
 		<button

@@ -30,6 +30,7 @@ export const user = mysqlTable('user', {
 	email: varchar('email', { length: 255 }).notNull().unique(),
 	passwordHash: varchar('password_hash', { length: 255 }).notNull(),
 	name: varchar('name', { length: 100 }),
+	emailVerified: boolean('email_verified').notNull().default(false),
 	createdAt: timestamp('created_at').notNull().defaultNow()
 });
 
@@ -40,6 +41,12 @@ export const session = mysqlTable('session', {
 });
 
 export const passwordResetToken = mysqlTable('password_reset_token', {
+	id: varchar('id', { length: 255 }).primaryKey(),
+	userId: int('user_id').notNull(),
+	expiresAt: timestamp('expires_at').notNull()
+});
+
+export const emailVerificationToken = mysqlTable('email_verification_token', {
 	id: varchar('id', { length: 255 }).primaryKey(),
 	userId: int('user_id').notNull(),
 	expiresAt: timestamp('expires_at').notNull()

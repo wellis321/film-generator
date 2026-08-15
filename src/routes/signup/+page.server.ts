@@ -1,13 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
-import {
-	hashPassword,
-	generateSessionToken,
-	createSession,
-	SESSION_COOKIE_NAME
-} from '$lib/server/auth';
+import { hashPassword, generateVerificationToken, createEmailVerificationToken } from '$lib/server/auth';
+import { sendVerificationEmail } from '$lib/server/email';
 import { migrateLegacyDataIfFirstUser } from '$lib/server/legacy-migration';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -16,7 +13,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, url }) => {
 		const form = await request.formData();
 		const email = String(form.get('email') ?? '')
 			.trim()
@@ -57,17 +54,15 @@ export const actions: Actions = {
 			.where(eq(user.email, email))
 			.limit(1);
 
-		const token = generateSessionToken();
-		await createSession(token, created.id);
-		cookies.set(SESSION_COOKIE_NAME, token, {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'lax',
-			maxAge: 60 * 60 * 24 * 30
-		});
-
 		await migrateLegacyDataIfFirstUser(created.id);
 
-		redirect(303, '/');
+		const token = generateVerificationToken();
+		await createEmailVerificationToken(token, created.id);
+		const verifyUrl = `${url.origin}/verify-email?token=${token}`;
+
+		if (!env.RESEND_API_KEY) throw new Error('RESEND_API_KEY is not set');
+		await sendVerificationEmail(env.RESEND_API_KEY, email, verifyUrl);
+
+		return { success: true, email };
 	}
 };

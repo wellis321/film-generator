@@ -2,13 +2,14 @@ import { randomBytes, scrypt, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
-import { session, user, passwordResetToken } from './db/schema';
+import { session, user, passwordResetToken, emailVerificationToken } from './db/schema';
 
 const scryptAsync = promisify(scrypt);
 
 export const SESSION_COOKIE_NAME = 'session';
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 const RESET_TOKEN_DURATION_MS = 1000 * 60 * 30; // 30 minutes
+const VERIFICATION_TOKEN_DURATION_MS = 1000 * 60 * 60 * 24; // 24 hours
 
 export async function hashPassword(password: string): Promise<string> {
 	const salt = randomBytes(16).toString('hex');
@@ -110,4 +111,40 @@ export async function validatePasswordResetToken(token: string) {
 export async function consumePasswordResetToken(token: string) {
 	const id = hashToken(token);
 	await db.delete(passwordResetToken).where(eq(passwordResetToken.id, id));
+}
+
+export function generateVerificationToken(): string {
+	return randomBytes(32).toString('hex');
+}
+
+export async function createEmailVerificationToken(token: string, userId: number) {
+	const id = hashToken(token);
+	const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_DURATION_MS);
+	// Same one-link-at-a-time rule as password reset — a fresh request
+	// supersedes whatever verification email is still sitting unopened.
+	await db.delete(emailVerificationToken).where(eq(emailVerificationToken.userId, userId));
+	await db.insert(emailVerificationToken).values({ id, userId, expiresAt });
+}
+
+export async function validateEmailVerificationToken(token: string) {
+	const id = hashToken(token);
+	const [result] = await db
+		.select()
+		.from(emailVerificationToken)
+		.where(eq(emailVerificationToken.id, id))
+		.limit(1);
+
+	if (!result) return null;
+
+	if (result.expiresAt.getTime() < Date.now()) {
+		await db.delete(emailVerificationToken).where(eq(emailVerificationToken.id, id));
+		return null;
+	}
+
+	return { userId: result.userId };
+}
+
+export async function consumeEmailVerificationToken(token: string) {
+	const id = hashToken(token);
+	await db.delete(emailVerificationToken).where(eq(emailVerificationToken.id, id));
 }

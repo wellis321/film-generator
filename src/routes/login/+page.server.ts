@@ -23,14 +23,22 @@ export const actions: Actions = {
 		const password = String(form.get('password') ?? '');
 
 		const [found] = await db
-			.select({ id: user.id, passwordHash: user.passwordHash })
+			.select({ id: user.id, passwordHash: user.passwordHash, emailVerified: user.emailVerified })
 			.from(user)
 			.where(eq(user.email, email))
 			.limit(1);
 
 		const valid = found ? await verifyPassword(password, found.passwordHash) : false;
 		if (!found || !valid) {
-			return fail(400, { error: 'Incorrect email or password.', email });
+			return fail(400, { error: 'Incorrect email or password.', email, unverified: false });
+		}
+
+		if (!found.emailVerified) {
+			return fail(403, {
+				error: 'Confirm your email before logging in — check your inbox for the link we sent.',
+				email,
+				unverified: true
+			});
 		}
 
 		const token = generateSessionToken();
