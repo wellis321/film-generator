@@ -72,7 +72,7 @@
 			childhood-defining classic, so we sat down, paid proper attention — and walked away
 			gobsmacked. Not by the magic. By how many holes were in the plot. So we kept going, on
 			purpose: Twilight, the X-Men, Star Wars — deliberately picking things everyone else adored,
-			just to see if we'd feel differently. We usually didn't.
+			just to see if we'd feel differently. We didn't!
 		</p>
 
 		<p class="leading-relaxed">
