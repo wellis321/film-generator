@@ -17,6 +17,7 @@
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
 	import { fly } from 'svelte/transition';
+	import { tick } from 'svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -38,6 +39,7 @@
 	let showAdvancedOptions = $state(false);
 	let dialogEl: HTMLDialogElement;
 	let scrollContainer: HTMLDivElement;
+	let reelWrapperEl: HTMLDivElement | undefined;
 
 	let spinning = $state(false);
 	let sequence = $state<typeof data.movies>([]);
@@ -139,7 +141,7 @@
 		return source[Math.floor(Math.random() * source.length)];
 	}
 
-	function runSpin() {
+	async function runSpin() {
 		spinning = true;
 
 		const excludeIds = new Set(results.map((r) => r.movie.id));
@@ -156,15 +158,22 @@
 		// Snap back to the top with no transition before animating down again,
 		// otherwise re-spinning would smoothly (and near-invisibly) ease from
 		// wherever the reel stopped last time instead of doing a full spin.
+		// A double requestAnimationFrame used to gate the follow-up state
+		// change, but that's a race: Svelte's DOM-patch schedule and the
+		// browser's paint schedule aren't guaranteed to line up, so the reset
+		// sometimes never actually painted before the target position was
+		// applied — the reel would silently skip the animation and land
+		// instantly. tick() waits for Svelte to commit the reset to the DOM,
+		// then reading offsetHeight forces the browser to synchronously
+		// compute layout for it, so there's a real "before" state on the
+		// page for the transition to animate from — no timing luck involved.
 		transitionMs = 0;
 		translateY = 0;
+		await tick();
+		void reelWrapperEl?.offsetHeight;
 
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
-				transitionMs = transitionDurationFor(roundSize);
-				translateY = -(seq.length - 1) * ITEM_HEIGHT;
-			});
-		});
+		transitionMs = transitionDurationFor(roundSize);
+		translateY = -(seq.length - 1) * ITEM_HEIGHT;
 	}
 
 	function addPlayer() {
@@ -392,6 +401,7 @@
 
 			{#if sequence.length}
 				<div
+					bind:this={reelWrapperEl}
 					class="transition-transform ease-[cubic-bezier(0.1,0.7,0.2,1)]"
 					style="transform: translateY({translateY}px); transition-duration: {transitionMs}ms;"
 					ontransitionend={onTransitionEnd}
