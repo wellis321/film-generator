@@ -57,6 +57,11 @@
 	let roundSize = $state(0);
 	let spinsRemaining = $state(0);
 	let totalInBatch = $state(0);
+	// Set the instant a spin's reel starts moving, not derived from
+	// spinsRemaining — so the "spin N of Total" label only ever changes
+	// exactly when a new spin actually starts animating, never a beat early
+	// during the pause after the previous one lands.
+	let spinNumber = $state(0);
 	let results = $state<{ movie: (typeof data.movies)[number]; quip: string }[]>([]);
 	let closingQuip = $state('');
 	let champion = $state<{ movie: (typeof data.movies)[number]; quip: string } | null>(null);
@@ -154,6 +159,7 @@
 
 	async function runSpin() {
 		spinning = true;
+		spinNumber += 1;
 
 		const pick = pickFromRoundPool(pickedIds);
 
@@ -311,6 +317,7 @@
 		roundSize = size;
 		totalInBatch = size;
 		spinsRemaining = size;
+		spinNumber = 0;
 		buildingFresh = fresh;
 		pickedIds = new Set();
 		if (fresh) results = [];
@@ -351,6 +358,7 @@
 		spinning = false;
 		roundSize = 0;
 		spinsRemaining = 0;
+		spinNumber = 0;
 		champion = null;
 		results = [];
 		buildingFresh = true;
@@ -374,16 +382,25 @@
 		if (buildingFresh) {
 			results = [...results, { movie: landed, quip: randomReaction() }];
 		}
-		spinsRemaining -= 1;
 
-		if (spinsRemaining > 0) {
-			pendingSpinTimeout = setTimeout(() => {
-				pendingSpinTimeout = null;
+		// The same settle pause applies whether another spin follows or this
+		// was the round's last one — without it, the final landed movie gets
+		// no time on screen before the round-complete UI takes over.
+		// spinsRemaining is deliberately left untouched until the pause
+		// elapses, so bracketActive (and the "spin N of Total" label) hold
+		// steady through the whole pause instead of flipping early.
+		pendingSpinTimeout = setTimeout(() => {
+			pendingSpinTimeout = null;
+			spinsRemaining -= 1;
+			if (spinsRemaining > 0) {
 				runSpin();
-			}, pauseDurationFor(roundSize));
-			return;
-		}
+			} else {
+				finishRound();
+			}
+		}, pauseDurationFor(roundSize));
+	}
 
+	function finishRound() {
 		// Round's decided — cut the field down to just the survivors, all at
 		// once, rather than the gallery having been rebuilt tile-by-tile.
 		if (!buildingFresh) {
@@ -767,7 +784,7 @@
 					</button>
 				{:else if bracketActive}
 					<p class="text-sm text-neutral-500">
-						spin {totalInBatch - spinsRemaining + 1} of {totalInBatch}
+						spin {spinNumber} of {totalInBatch}
 					</p>
 				{/if}
 			</div>
