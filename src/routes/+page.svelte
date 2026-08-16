@@ -55,6 +55,10 @@
 	// each subsequent round.
 	const CLAIMS_PER_PLAYER = 2;
 	let players = $state<string[]>(data.savedCharacters.map((c) => c.name));
+	// Tucked away by default — the plain spin-and-quips flow is the main
+	// event, and this only opens up front for people who already have
+	// characters saved from a previous visit.
+	let showPlayerSetup = $state(players.length > 0);
 	let savingCharacters = $state(false);
 	let savedFeedback = $state(false);
 	let claims = $state<Map<number, number>>(new Map());
@@ -391,72 +395,96 @@
 			{/each}
 		</div>
 
-		<div class="mx-auto mt-6 max-w-md">
-			<p class="text-sm text-neutral-500">
-				Who's picking? <span class="text-neutral-600">(optional)</span>
-			</p>
-			{#if !user}
-				<p class="mt-0.5 text-xs text-neutral-600">
-					<a href="/login" class="text-amber-400/80 hover:underline">Log in</a> to save your characters
-					and track their wins.
-				</p>
-			{/if}
-			<div class="mt-2 space-y-2">
-				{#each players as _, i (i)}
-					<div class="flex items-center gap-2">
-						<span
-							class="h-2.5 w-2.5 flex-shrink-0 rounded-full {playerColors[i % playerColors.length]
-								.badge.split(' ')[0]}"
-						></span>
-						<input
-							type="text"
-							placeholder="Player {i + 1}"
-							bind:value={players[i]}
-							class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none"
-						/>
-						{#if user && winsByName.get(players[i].trim())}
-							<span
-								class="flex-shrink-0 text-xs font-semibold text-amber-400"
-								title="Wins with this character">🏆 {winsByName.get(players[i].trim())}</span
-							>
-						{/if}
-						<button
-							type="button"
-							onclick={() => randomNameFor(i)}
-							title="Suggest a name"
-							class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
-						>
-							🎲
-						</button>
-						<button
-							type="button"
-							onclick={() => removePlayer(i)}
-							aria-label="Remove player"
-							class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
-						>
-							✕
-						</button>
-					</div>
-				{/each}
-			</div>
-			<div class="mt-2 flex items-center gap-4">
-				{#if players.length < 5}
-					<button type="button" onclick={addPlayer} class="text-sm text-amber-400 hover:underline">
-						+ Add player
-					</button>
-				{/if}
-				{#if user && players.length > 0}
+		{#if !showPlayerSetup}
+			<button
+				type="button"
+				onclick={() => (showPlayerSetup = true)}
+				class="mx-auto mt-6 block text-sm text-neutral-500 transition hover:text-neutral-300"
+			>
+				Playing with others? Track picks &amp; wins
+			</button>
+		{:else}
+			<div class="mx-auto mt-6 max-w-md">
+				<div class="flex items-center justify-between">
+					<p class="text-sm text-neutral-500">
+						Who's picking? <span class="text-neutral-600">(optional)</span>
+					</p>
 					<button
 						type="button"
-						onclick={saveCharacters}
-						disabled={savingCharacters}
-						class="text-sm text-neutral-400 hover:text-neutral-200 disabled:cursor-not-allowed"
+						onclick={() => (showPlayerSetup = false)}
+						class="text-xs text-neutral-600 hover:text-neutral-400"
 					>
-						{savedFeedback ? 'Saved ✓' : savingCharacters ? 'Saving…' : '💾 Save characters'}
+						Hide
 					</button>
+				</div>
+				{#if !user}
+					<p class="mt-0.5 text-xs text-neutral-600">
+						<a href="/login" class="text-amber-400/80 hover:underline">Log in</a> to save your characters
+						and track their wins.
+					</p>
 				{/if}
+				<div class="mt-2 space-y-2">
+					{#each players as _, i (i)}
+						<div class="flex items-center gap-2">
+							<span
+								class="h-2.5 w-2.5 flex-shrink-0 rounded-full {playerColors[
+									i % playerColors.length
+								].badge.split(' ')[0]}"
+							></span>
+							<input
+								type="text"
+								placeholder="Player {i + 1}"
+								bind:value={players[i]}
+								class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none"
+							/>
+							{#if user && winsByName.get(players[i].trim())}
+								<span
+									class="flex-shrink-0 text-xs font-semibold text-amber-400"
+									title="Wins with this character">🏆 {winsByName.get(players[i].trim())}</span
+								>
+							{/if}
+							<button
+								type="button"
+								onclick={() => randomNameFor(i)}
+								title="Suggest a name"
+								class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
+							>
+								🎲
+							</button>
+							<button
+								type="button"
+								onclick={() => removePlayer(i)}
+								aria-label="Remove player"
+								class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
+							>
+								✕
+							</button>
+						</div>
+					{/each}
+				</div>
+				<div class="mt-2 flex items-center gap-4">
+					{#if players.length < 5}
+						<button
+							type="button"
+							onclick={addPlayer}
+							class="text-sm text-amber-400 hover:underline"
+						>
+							+ Add player
+						</button>
+					{/if}
+					{#if user && players.length > 0}
+						<button
+							type="button"
+							onclick={saveCharacters}
+							disabled={savingCharacters}
+							class="text-sm text-neutral-400 hover:text-neutral-200 disabled:cursor-not-allowed"
+						>
+							{savedFeedback ? 'Saved ✓' : savingCharacters ? 'Saving…' : '💾 Save characters'}
+						</button>
+					{/if}
+				</div>
 			</div>
-		</div>
+		{/if}
 
 		<button
 			onclick={startBracket}
@@ -506,7 +534,7 @@
 
 				{#if sequence.length}
 					<div
-						class="ease-[cubic-bezier(0.1,0.7,0.2,1)] transition-transform"
+						class="transition-transform ease-[cubic-bezier(0.1,0.7,0.2,1)]"
 						style="transform: translateY({translateY}px); transition-duration: {transitionMs}ms;"
 						ontransitionend={onTransitionEnd}
 					>
@@ -569,8 +597,7 @@
 				</div>
 				<p class="mt-2 text-sm text-neutral-500">
 					Tap a poster to claim it for
-					<span
-						class="font-semibold {playerColors[claimingPlayerIndex % playerColors.length].text}"
+					<span class="font-semibold {playerColors[claimingPlayerIndex % playerColors.length].text}"
 						>{playerNames[claimingPlayerIndex]}</span
 					>
 					— tap it again to undo, or pick another name above to switch.
