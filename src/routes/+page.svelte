@@ -437,11 +437,11 @@
 				<img
 					src={posterUrl(c.movie.posterPath, 'w500')}
 					alt=""
-					class="mx-auto w-48 rounded-2xl object-cover shadow-xl transition group-hover:opacity-90"
+					class="mx-auto w-32 rounded-2xl object-cover shadow-xl transition group-hover:opacity-90"
 				/>
 			{:else}
 				<div
-					class="mx-auto flex h-72 w-48 items-center justify-center rounded-2xl bg-neutral-800 text-5xl"
+					class="mx-auto flex h-48 w-32 items-center justify-center rounded-2xl bg-neutral-800 text-4xl"
 				>
 					🎬
 				</div>
