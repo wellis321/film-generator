@@ -740,7 +740,7 @@
 <dialog
 	bind:this={dialogEl}
 	onclose={onDialogClose}
-	class="m-auto w-[95vw] max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-0 text-neutral-100 backdrop:bg-black/70 backdrop:backdrop-blur-sm sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl"
+	class="mx-auto mt-6 mb-auto w-[95vw] max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-0 text-neutral-100 backdrop:bg-black/70 backdrop:backdrop-blur-sm sm:mt-10 sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl"
 >
 	{#if selectedBracketSize > 1}
 		<div bind:this={scrollContainer} class="max-h-[85vh] overflow-y-auto p-4 sm:p-6 lg:p-8">
