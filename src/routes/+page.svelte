@@ -31,7 +31,10 @@
 		return unwatched.length > 0 ? unwatched : data.movies;
 	});
 
+	// Defaults to the plain single-spin experience. Bracket sizes > 1 and the
+	// "who's picking" layer only become reachable via "More options" below.
 	let selectedBracketSize = $state<number>(1);
+	let showAdvancedOptions = $state(false);
 	let dialogEl: HTMLDialogElement;
 	let scrollContainer: HTMLDivElement;
 
@@ -52,13 +55,10 @@
 
 	// Optional "who's picking" layer: named players claim a couple of movies
 	// each right after round 1, then we narrate whether their picks survive
-	// each subsequent round.
+	// each subsequent round. Only meaningful once a real bracket (size > 1)
+	// is in play — a single spin has no "survives the round" concept.
 	const CLAIMS_PER_PLAYER = 2;
 	let players = $state<string[]>(data.savedCharacters.map((c) => c.name));
-	// Tucked away by default — the plain spin-and-quips flow is the main
-	// event, and this only opens up front for people who already have
-	// characters saved from a previous visit.
-	let showPlayerSetup = $state(players.length > 0);
 	let savingCharacters = $state(false);
 	let savedFeedback = $state(false);
 	let claims = $state<Map<number, number>>(new Map());
@@ -280,8 +280,11 @@
 		if (bracketActive || fullPool.length === 0) return;
 		champion = null;
 		roundPool = fullPool;
-		dialogEl.showModal();
-		beginRound(Math.min(selectedBracketSize, fullPool.length));
+		const size = Math.min(selectedBracketSize, fullPool.length);
+		// Anything bigger than a single spin runs inside the bracket dialog;
+		// a plain single spin plays right there on the page, no dialog at all.
+		if (size > 1) dialogEl.showModal();
+		beginRound(size);
 	}
 
 	function continueBracket() {
@@ -367,6 +370,105 @@
 	<title>Regretometer — Spin</title>
 </svelte:head>
 
+{#snippet reelBox()}
+	<div class="relative mx-auto mt-4 max-w-sm">
+		<div
+			class="pointer-events-none absolute top-1/2 left-0 z-20 h-0 w-0 -translate-x-1/2 -translate-y-1/2 border-y-[12px] border-l-[16px] border-y-transparent border-l-amber-400"
+		></div>
+		<div
+			class="pointer-events-none absolute top-1/2 right-0 z-20 h-0 w-0 translate-x-1/2 -translate-y-1/2 border-y-[12px] border-r-[16px] border-y-transparent border-r-amber-400"
+		></div>
+
+		<div
+			class="relative h-60 overflow-hidden rounded-2xl border-2 border-amber-400/60 bg-neutral-900 shadow-[0_0_40px_-10px_rgba(251,191,36,0.4)]"
+		>
+			<div
+				class="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-neutral-950 to-transparent"
+			></div>
+			<div
+				class="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-neutral-950 to-transparent"
+			></div>
+
+			{#if sequence.length}
+				<div
+					class="transition-transform ease-[cubic-bezier(0.1,0.7,0.2,1)]"
+					style="transform: translateY({translateY}px); transition-duration: {transitionMs}ms;"
+					ontransitionend={onTransitionEnd}
+				>
+					{#each sequence as item, i (i)}
+						<a
+							href="/movie/{item.id}"
+							class="flex h-60 items-center gap-4 px-8 transition-colors hover:bg-neutral-800/40"
+						>
+							{#if posterUrl(item.posterPath)}
+								<img
+									src={posterUrl(item.posterPath)}
+									alt=""
+									class="h-44 w-30 flex-shrink-0 rounded-lg object-cover shadow-lg"
+								/>
+							{:else}
+								<div
+									class="flex h-44 w-30 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-800 text-3xl"
+								>
+									🎬
+								</div>
+							{/if}
+							<div class="min-w-0 text-left">
+								<p class="truncate text-xl font-bold text-neutral-50">{item.title}</p>
+								<p class="text-sm text-neutral-500">
+									{item.year ?? ''}
+									{item.mediaType === 'tv' ? '· TV Series' : ''}
+								</p>
+							</div>
+						</a>
+					{/each}
+				</div>
+			{:else}
+				<div class="flex h-60 items-center justify-center text-5xl text-neutral-700">🎬</div>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
+{#snippet championCard(c: { movie: (typeof data.movies)[number]; quip: string })}
+	<div class="mx-auto mt-8 max-w-xs text-center">
+		<a href="/movie/{c.movie.id}" class="group block">
+			{#if posterUrl(c.movie.posterPath, 'w500')}
+				<img
+					src={posterUrl(c.movie.posterPath, 'w500')}
+					alt=""
+					class="mx-auto w-48 rounded-2xl object-cover shadow-xl transition group-hover:opacity-90"
+				/>
+			{:else}
+				<div
+					class="mx-auto flex h-72 w-48 items-center justify-center rounded-2xl bg-neutral-800 text-5xl"
+				>
+					🎬
+				</div>
+			{/if}
+		</a>
+		<p class="mt-4 text-2xl font-bold text-neutral-50">{c.movie.title}</p>
+		<p class="text-sm text-neutral-500">
+			{c.movie.year ?? ''}
+			{c.movie.mediaType === 'tv' ? '· TV Series' : ''}
+		</p>
+		<div class="mt-4 space-y-1 text-lg text-neutral-300 italic">
+			{#each splitSentences(c.quip) as line (line)}
+				<p>{line}</p>
+			{/each}
+		</div>
+		{#if roundNarration}
+			<p class="mt-3 text-base font-semibold text-neutral-100">{roundNarration}</p>
+		{/if}
+		<a
+			href="/movie/{c.movie.id}"
+			class="mt-4 inline-block rounded-full bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-white"
+		>
+			View & review →
+		</a>
+	</div>
+{/snippet}
+
 <section class="text-center">
 	<h1 class="text-4xl font-black tracking-tight text-neutral-50 sm:text-5xl">
 		Spin for tonight's <span class="text-amber-400">regret</span>.
@@ -380,128 +482,151 @@
 			No movies in the pool yet — run <code class="text-amber-400">npm run db:seed</code> to load some.
 		</p>
 	{:else}
-		<div class="mx-auto mt-10 flex max-w-lg flex-wrap justify-center gap-2">
+		{#if selectedBracketSize === 1}
+			{@render reelBox()}
+		{/if}
+
+		<div class="mt-6 text-center">
 			<button
-				type="button"
-				onclick={() => (selectedBracketSize = 1)}
-				class="rounded-full border px-4 py-1.5 text-sm font-medium transition {selectedBracketSize ===
-				1
-					? 'border-amber-400 bg-amber-400/10 text-amber-400'
-					: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
+				onclick={startBracket}
+				disabled={bracketActive}
+				class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				Just Spin
+				{bracketActive
+					? 'Spinning…'
+					: selectedBracketSize === 1 && champion
+						? newBracketLabel
+						: 'Spin the wheel'}
 			</button>
-			{#each bracketSizes as size (size)}
-				<button
-					type="button"
-					onclick={() => (selectedBracketSize = size)}
-					class="rounded-full border px-4 py-1.5 text-sm font-medium transition {selectedBracketSize ===
-					size
-						? 'border-amber-400 bg-amber-400/10 text-amber-400'
-						: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
-				>
-					{bracketSizeLabels[size]} ({size})
-				</button>
-			{/each}
 		</div>
 
-		{#if !showPlayerSetup}
+		{#if selectedBracketSize === 1 && champion}
+			{@render championCard(champion)}
+		{/if}
+
+		{#if !showAdvancedOptions}
 			<button
 				type="button"
-				onclick={() => (showPlayerSetup = true)}
-				class="mx-auto mt-6 block text-sm text-neutral-500 transition hover:text-neutral-300"
+				onclick={() => (showAdvancedOptions = true)}
+				class="mx-auto mt-8 block text-sm text-neutral-500 transition hover:text-neutral-300"
 			>
-				Playing with others? Track picks &amp; wins
+				More options
 			</button>
 		{:else}
-			<div class="mx-auto mt-6 max-w-md">
+			<div class="mx-auto mt-8 max-w-lg">
 				<div class="flex items-center justify-between">
-					<p class="text-sm text-neutral-500">
-						Who's picking? <span class="text-neutral-600">(optional)</span>
-					</p>
+					<p class="text-sm text-neutral-500">More options</p>
 					<button
 						type="button"
-						onclick={() => (showPlayerSetup = false)}
+						onclick={() => (showAdvancedOptions = false)}
 						class="text-xs text-neutral-600 hover:text-neutral-400"
 					>
 						Hide
 					</button>
 				</div>
-				{#if !user}
-					<p class="mt-0.5 text-xs text-neutral-600">
-						<a href="/login" class="text-amber-400/80 hover:underline">Log in</a> to save your characters
-						and track their wins.
-					</p>
-				{/if}
-				<div class="mt-2 space-y-2">
-					{#each players as _, i (i)}
-						<div class="flex items-center gap-2">
-							<span
-								class="h-2.5 w-2.5 flex-shrink-0 rounded-full {playerColors[
-									i % playerColors.length
-								].badge.split(' ')[0]}"
-							></span>
-							<input
-								type="text"
-								placeholder="Player {i + 1}"
-								bind:value={players[i]}
-								class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none"
-							/>
-							{#if user && winsByName.get(players[i].trim())}
-								<span
-									class="flex-shrink-0 text-xs font-semibold text-amber-400"
-									title="Wins with this character">🏆 {winsByName.get(players[i].trim())}</span
-								>
-							{/if}
-							<button
-								type="button"
-								onclick={() => randomNameFor(i)}
-								title="Suggest a name"
-								class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
-							>
-								🎲
-							</button>
-							<button
-								type="button"
-								onclick={() => removePlayer(i)}
-								aria-label="Remove player"
-								class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
-							>
-								✕
-							</button>
-						</div>
+
+				<div class="mt-2 flex flex-wrap justify-center gap-2">
+					<button
+						type="button"
+						onclick={() => (selectedBracketSize = 1)}
+						disabled={bracketActive}
+						class="rounded-full border px-4 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 {selectedBracketSize ===
+						1
+							? 'border-amber-400 bg-amber-400/10 text-amber-400'
+							: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
+					>
+						Just Spin
+					</button>
+					{#each bracketSizes as size (size)}
+						<button
+							type="button"
+							onclick={() => (selectedBracketSize = size)}
+							disabled={bracketActive}
+							class="rounded-full border px-4 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 {selectedBracketSize ===
+							size
+								? 'border-amber-400 bg-amber-400/10 text-amber-400'
+								: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
+						>
+							{bracketSizeLabels[size]} ({size})
+						</button>
 					{/each}
 				</div>
-				<div class="mt-2 flex items-center gap-4">
-					{#if players.length < 5}
-						<button
-							type="button"
-							onclick={addPlayer}
-							class="text-sm text-amber-400 hover:underline"
-						>
-							+ Add player
-						</button>
-					{/if}
-					{#if user && players.length > 0}
-						<button
-							type="button"
-							onclick={saveCharacters}
-							disabled={savingCharacters}
-							class="text-sm text-neutral-400 hover:text-neutral-200 disabled:cursor-not-allowed"
-						>
-							{savedFeedback ? 'Saved ✓' : savingCharacters ? 'Saving…' : '💾 Save characters'}
-						</button>
-					{/if}
-				</div>
+
+				{#if selectedBracketSize > 1}
+					<div class="mt-4 max-w-md">
+						<p class="text-sm text-neutral-500">
+							Who's picking? <span class="text-neutral-600">(optional)</span>
+						</p>
+						{#if !user}
+							<p class="mt-0.5 text-xs text-neutral-600">
+								<a href="/login" class="text-amber-400/80 hover:underline">Log in</a> to save your characters
+								and track their wins.
+							</p>
+						{/if}
+						<div class="mt-2 space-y-2">
+							{#each players as _, i (i)}
+								<div class="flex items-center gap-2">
+									<span
+										class="h-2.5 w-2.5 flex-shrink-0 rounded-full {playerColors[
+											i % playerColors.length
+										].badge.split(' ')[0]}"
+									></span>
+									<input
+										type="text"
+										placeholder="Player {i + 1}"
+										bind:value={players[i]}
+										class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none"
+									/>
+									{#if user && winsByName.get(players[i].trim())}
+										<span
+											class="flex-shrink-0 text-xs font-semibold text-amber-400"
+											title="Wins with this character">🏆 {winsByName.get(players[i].trim())}</span
+										>
+									{/if}
+									<button
+										type="button"
+										onclick={() => randomNameFor(i)}
+										title="Suggest a name"
+										class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
+									>
+										🎲
+									</button>
+									<button
+										type="button"
+										onclick={() => removePlayer(i)}
+										aria-label="Remove player"
+										class="flex-shrink-0 rounded-full border border-neutral-700 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-500 hover:text-neutral-200"
+									>
+										✕
+									</button>
+								</div>
+							{/each}
+						</div>
+						<div class="mt-2 flex items-center gap-4">
+							{#if players.length < 5}
+								<button
+									type="button"
+									onclick={addPlayer}
+									class="text-sm text-amber-400 hover:underline"
+								>
+									+ Add player
+								</button>
+							{/if}
+							{#if user && players.length > 0}
+								<button
+									type="button"
+									onclick={saveCharacters}
+									disabled={savingCharacters}
+									class="text-sm text-neutral-400 hover:text-neutral-200 disabled:cursor-not-allowed"
+								>
+									{savedFeedback ? 'Saved ✓' : savingCharacters ? 'Saving…' : '💾 Save characters'}
+								</button>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			</div>
 		{/if}
-
-		<button
-			onclick={startBracket}
-			class="mt-6 rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
-		>
-			Spin the wheel
-		</button>
 	{/if}
 </section>
 
@@ -510,244 +635,158 @@
 	onclose={onDialogClose}
 	class="m-auto w-[95vw] max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-0 text-neutral-100 backdrop:bg-black/70 backdrop:backdrop-blur-sm sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl"
 >
-	<div bind:this={scrollContainer} class="max-h-[85vh] overflow-y-auto p-4 sm:p-6 lg:p-8">
-		<div class="flex items-start justify-between gap-4">
-			<p class="text-sm font-semibold tracking-wide text-amber-400 uppercase">
-				{roundSize > 0 ? bracketSizeLabels[roundSize] : ''}
-			</p>
-			<button
-				onclick={() => dialogEl.close()}
-				aria-label="Stop and close"
-				class="rounded-full border border-neutral-800 px-2.5 py-1 text-sm text-neutral-500 transition hover:border-neutral-600 hover:text-neutral-300"
-			>
-				✕
-			</button>
-		</div>
-
-		<div class="relative mx-auto mt-4 max-w-sm">
-			<div
-				class="pointer-events-none absolute top-1/2 left-0 z-20 h-0 w-0 -translate-x-1/2 -translate-y-1/2 border-y-[12px] border-l-[16px] border-y-transparent border-l-amber-400"
-			></div>
-			<div
-				class="pointer-events-none absolute top-1/2 right-0 z-20 h-0 w-0 translate-x-1/2 -translate-y-1/2 border-y-[12px] border-r-[16px] border-y-transparent border-r-amber-400"
-			></div>
-
-			<div
-				class="relative h-60 overflow-hidden rounded-2xl border-2 border-amber-400/60 bg-neutral-900 shadow-[0_0_40px_-10px_rgba(251,191,36,0.4)]"
-			>
-				<div
-					class="pointer-events-none absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-neutral-950 to-transparent"
-				></div>
-				<div
-					class="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-16 bg-gradient-to-t from-neutral-950 to-transparent"
-				></div>
-
-				{#if sequence.length}
-					<div
-						class="transition-transform ease-[cubic-bezier(0.1,0.7,0.2,1)]"
-						style="transform: translateY({translateY}px); transition-duration: {transitionMs}ms;"
-						ontransitionend={onTransitionEnd}
-					>
-						{#each sequence as item, i (i)}
-							<a
-								href="/movie/{item.id}"
-								class="flex h-60 items-center gap-4 px-8 transition-colors hover:bg-neutral-800/40"
-							>
-								{#if posterUrl(item.posterPath)}
-									<img
-										src={posterUrl(item.posterPath)}
-										alt=""
-										class="h-44 w-30 flex-shrink-0 rounded-lg object-cover shadow-lg"
-									/>
-								{:else}
-									<div
-										class="flex h-44 w-30 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-800 text-3xl"
-									>
-										🎬
-									</div>
-								{/if}
-								<div class="min-w-0 text-left">
-									<p class="truncate text-xl font-bold text-neutral-50">{item.title}</p>
-									<p class="text-sm text-neutral-500">
-										{item.year ?? ''}
-										{item.mediaType === 'tv' ? '· TV Series' : ''}
-									</p>
-								</div>
-							</a>
-						{/each}
-					</div>
-				{:else}
-					<div class="flex h-60 items-center justify-center text-5xl text-neutral-700">🎬</div>
-				{/if}
-			</div>
-		</div>
-
-		<div class="mt-6 text-center">
-			{#if champion}
+	{#if selectedBracketSize > 1}
+		<div bind:this={scrollContainer} class="max-h-[85vh] overflow-y-auto p-4 sm:p-6 lg:p-8">
+			<div class="flex items-start justify-between gap-4">
+				<p class="text-sm font-semibold tracking-wide text-amber-400 uppercase">
+					{roundSize > 0 ? bracketSizeLabels[roundSize] : ''}
+				</p>
 				<button
 					onclick={() => dialogEl.close()}
-					class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+					aria-label="Stop and close"
+					class="rounded-full border border-neutral-800 px-2.5 py-1 text-sm text-neutral-500 transition hover:border-neutral-600 hover:text-neutral-300"
 				>
-					{newBracketLabel}
+					✕
 				</button>
-			{:else if needsClaiming}
-				<div class="flex flex-wrap items-center justify-center gap-2">
-					{#each playerNames as name, i (i)}
-						<button
-							type="button"
-							onclick={() => setActiveClaimer(i)}
-							class="rounded-full border px-3 py-1 text-sm font-medium transition {i ===
-							claimingPlayerIndex
-								? `border-current ${playerColors[i % playerColors.length].text}`
-								: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
-						>
-							{name} ({countFor(i)}/{CLAIMS_PER_PLAYER})
-						</button>
-					{/each}
-				</div>
-				<p class="mt-2 text-sm text-neutral-500">
-					Tap a poster to claim it for
-					<span class="font-semibold {playerColors[claimingPlayerIndex % playerColors.length].text}"
-						>{playerNames[claimingPlayerIndex]}</span
-					>
-					— tap it again to undo, or pick another name above to switch.
-				</p>
-				{#if allClaimsComplete}
-					<button
-						type="button"
-						onclick={finalizeClaims}
-						class="mt-3 rounded-full bg-amber-400 px-6 py-2 text-sm font-bold text-neutral-950 transition hover:bg-amber-300"
-					>
-						Continue → Narrow it down
-					</button>
-				{:else}
-					<button
-						type="button"
-						onclick={finalizeClaims}
-						class="mt-2 text-sm text-neutral-500 hover:underline"
-					>
-						Skip picks
-					</button>
-				{/if}
-			{:else if roundComplete}
-				<button
-					onclick={continueBracket}
-					class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
-				>
-					Narrow it down to the {bracketSizeLabels[nextRoundSize]}
-				</button>
-			{:else if bracketActive}
-				<p class="text-sm text-neutral-500">
-					spin {totalInBatch - spinsRemaining + 1} of {totalInBatch}
-				</p>
-			{/if}
-		</div>
-
-		{#if champion}
-			<div class="mx-auto mt-8 max-w-xs text-center">
-				<a href="/movie/{champion.movie.id}" class="group block">
-					{#if posterUrl(champion.movie.posterPath, 'w500')}
-						<img
-							src={posterUrl(champion.movie.posterPath, 'w500')}
-							alt=""
-							class="mx-auto w-48 rounded-2xl object-cover shadow-xl transition group-hover:opacity-90"
-						/>
-					{:else}
-						<div
-							class="mx-auto flex h-72 w-48 items-center justify-center rounded-2xl bg-neutral-800 text-5xl"
-						>
-							🎬
-						</div>
-					{/if}
-				</a>
-				<p class="mt-4 text-2xl font-bold text-neutral-50">{champion.movie.title}</p>
-				<p class="text-sm text-neutral-500">
-					{champion.movie.year ?? ''}
-					{champion.movie.mediaType === 'tv' ? '· TV Series' : ''}
-				</p>
-				<div class="mt-4 space-y-1 text-lg text-neutral-300 italic">
-					{#each splitSentences(champion.quip) as line (line)}
-						<p>{line}</p>
-					{/each}
-				</div>
-				{#if roundNarration}
-					<p class="mt-3 text-base font-semibold text-neutral-100">{roundNarration}</p>
-				{/if}
-				<a
-					href="/movie/{champion.movie.id}"
-					class="mt-4 inline-block rounded-full bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-white"
-				>
-					View & review →
-				</a>
 			</div>
-		{:else if results.length > 0}
-			<div class="mt-8">
-				{#if closingQuip}
-					<div class="space-y-1 text-center text-lg text-neutral-300 italic">
-						{#each splitSentences(closingQuip) as line (line)}
-							<p>{line}</p>
-						{/each}
-					</div>
-				{/if}
-				{#if roundNarration}
-					<p class="mt-2 text-center text-base font-semibold text-neutral-100">{roundNarration}</p>
-				{/if}
 
-				{#snippet resultThumb(result: (typeof results)[number])}
-					{@const owner = claims.get(result.movie.id)}
-					{#if owner !== undefined}
-						<span
-							class="absolute -top-1.5 -right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold {playerColors[
-								owner % playerColors.length
-							].badge}"
-						>
-							{playerNames[owner]?.[0] ?? '?'}
-						</span>
-					{/if}
-					{#if posterUrl(result.movie.posterPath)}
-						<img
-							src={posterUrl(result.movie.posterPath)}
-							alt=""
-							class="w-full rounded-lg object-cover shadow-md transition group-hover:opacity-80 {owner !==
-							undefined
-								? `ring-2 ${playerColors[owner % playerColors.length].ring}`
-								: ''}"
-						/>
-					{:else}
-						<div
-							class="flex aspect-[2/3] items-center justify-center rounded-lg bg-neutral-800 text-xl"
-						>
-							🎬
-						</div>
-					{/if}
-					<p class="mt-1 truncate text-xs font-medium text-neutral-300">
-						{result.movie.title}
-					</p>
-				{/snippet}
+			{@render reelBox()}
 
-				<div class="mt-6 grid gap-3 text-left {galleryGridClass}">
-					{#each results as result (result.movie.id)}
-						{#if needsClaiming}
+			<div class="mt-6 text-center">
+				{#if champion}
+					<button
+						onclick={() => dialogEl.close()}
+						class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+					>
+						{newBracketLabel}
+					</button>
+				{:else if needsClaiming}
+					<div class="flex flex-wrap items-center justify-center gap-2">
+						{#each playerNames as name, i (i)}
 							<button
 								type="button"
-								onclick={() => claimMovie(result.movie.id)}
-								class="group relative block text-left"
-								title={result.movie.title}
+								onclick={() => setActiveClaimer(i)}
+								class="rounded-full border px-3 py-1 text-sm font-medium transition {i ===
+								claimingPlayerIndex
+									? `border-current ${playerColors[i % playerColors.length].text}`
+									: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
 							>
-								{@render resultThumb(result)}
+								{name} ({countFor(i)}/{CLAIMS_PER_PLAYER})
 							</button>
-						{:else}
-							<a
-								href="/movie/{result.movie.id}"
-								class="group relative block text-left"
-								title={result.movie.title}
-							>
-								{@render resultThumb(result)}
-							</a>
-						{/if}
-					{/each}
-				</div>
+						{/each}
+					</div>
+					<p class="mt-2 text-sm text-neutral-500">
+						Tap a poster to claim it for
+						<span
+							class="font-semibold {playerColors[claimingPlayerIndex % playerColors.length].text}"
+							>{playerNames[claimingPlayerIndex]}</span
+						>
+						— tap it again to undo, or pick another name above to switch.
+					</p>
+					{#if allClaimsComplete}
+						<button
+							type="button"
+							onclick={finalizeClaims}
+							class="mt-3 rounded-full bg-amber-400 px-6 py-2 text-sm font-bold text-neutral-950 transition hover:bg-amber-300"
+						>
+							Continue → Narrow it down
+						</button>
+					{:else}
+						<button
+							type="button"
+							onclick={finalizeClaims}
+							class="mt-2 text-sm text-neutral-500 hover:underline"
+						>
+							Skip picks
+						</button>
+					{/if}
+				{:else if roundComplete}
+					<button
+						onclick={continueBracket}
+						class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300"
+					>
+						Narrow it down to the {bracketSizeLabels[nextRoundSize]}
+					</button>
+				{:else if bracketActive}
+					<p class="text-sm text-neutral-500">
+						spin {totalInBatch - spinsRemaining + 1} of {totalInBatch}
+					</p>
+				{/if}
 			</div>
-		{/if}
-	</div>
+
+			{#if champion}
+				{@render championCard(champion)}
+			{:else if results.length > 0}
+				<div class="mt-8">
+					{#if closingQuip}
+						<div class="space-y-1 text-center text-lg text-neutral-300 italic">
+							{#each splitSentences(closingQuip) as line (line)}
+								<p>{line}</p>
+							{/each}
+						</div>
+					{/if}
+					{#if roundNarration}
+						<p class="mt-2 text-center text-base font-semibold text-neutral-100">
+							{roundNarration}
+						</p>
+					{/if}
+
+					{#snippet resultThumb(result: (typeof results)[number])}
+						{@const owner = claims.get(result.movie.id)}
+						{#if owner !== undefined}
+							<span
+								class="absolute -top-1.5 -right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold {playerColors[
+									owner % playerColors.length
+								].badge}"
+							>
+								{playerNames[owner]?.[0] ?? '?'}
+							</span>
+						{/if}
+						{#if posterUrl(result.movie.posterPath)}
+							<img
+								src={posterUrl(result.movie.posterPath)}
+								alt=""
+								class="w-full rounded-lg object-cover shadow-md transition group-hover:opacity-80 {owner !==
+								undefined
+									? `ring-2 ${playerColors[owner % playerColors.length].ring}`
+									: ''}"
+							/>
+						{:else}
+							<div
+								class="flex aspect-[2/3] items-center justify-center rounded-lg bg-neutral-800 text-xl"
+							>
+								🎬
+							</div>
+						{/if}
+						<p class="mt-1 truncate text-xs font-medium text-neutral-300">
+							{result.movie.title}
+						</p>
+					{/snippet}
+
+					<div class="mt-6 grid gap-3 text-left {galleryGridClass}">
+						{#each results as result (result.movie.id)}
+							{#if needsClaiming}
+								<button
+									type="button"
+									onclick={() => claimMovie(result.movie.id)}
+									class="group relative block text-left"
+									title={result.movie.title}
+								>
+									{@render resultThumb(result)}
+								</button>
+							{:else}
+								<a
+									href="/movie/{result.movie.id}"
+									class="group relative block text-left"
+									title={result.movie.title}
+								>
+									{@render resultThumb(result)}
+								</a>
+							{/if}
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </dialog>
