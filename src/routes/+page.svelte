@@ -486,11 +486,10 @@
 								</div>
 							{/if}
 							<div class="min-w-0 text-left">
-								<p class="truncate text-xl font-bold text-neutral-50">{item.title}</p>
-								<p class="text-sm text-neutral-500">
-									{item.year ?? ''}
-									{item.mediaType === 'tv' ? '· TV Series' : ''}
-								</p>
+								<p class="line-clamp-3 text-xl font-bold text-neutral-50">{item.title}</p>
+								{#if item.mediaType === 'tv'}
+									<p class="text-sm text-neutral-500">TV Series</p>
+								{/if}
 							</div>
 						</a>
 					{/each}
@@ -544,6 +543,22 @@
 	</div>
 {/snippet}
 
+{#snippet spinResult(c: { movie: (typeof data.movies)[number]; quip: string })}
+	<div class="mx-auto mt-4 max-w-sm text-center" in:fly={{ y: 12, duration: 400, delay: 100 }}>
+		<div class="space-y-1 text-lg text-neutral-300 italic">
+			{#each splitSentences(c.quip) as line (line)}
+				<p>{line}</p>
+			{/each}
+		</div>
+		<a
+			href="/movie/{c.movie.id}"
+			class="mt-4 inline-block rounded-full bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-950 transition hover:bg-white"
+		>
+			View & review →
+		</a>
+	</div>
+{/snippet}
+
 <section class="text-center">
 	<h1 class="text-4xl font-black tracking-tight text-neutral-50 sm:text-5xl">
 		Spin for tonight's <span class="text-amber-400">regret</span>.
@@ -576,7 +591,7 @@
 		</div>
 
 		{#if selectedBracketSize === 1 && champion}
-			{@render championCard(champion)}
+			{@render spinResult(champion)}
 		{/if}
 
 		{#if !showAdvancedOptions}
