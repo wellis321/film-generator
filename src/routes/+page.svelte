@@ -44,7 +44,7 @@
 	let spinning = $state(false);
 	let sequence = $state<typeof data.movies>([]);
 	let translateY = $state(0);
-	let transitionMs = $state(0);
+	let currentAnimation: Animation | null = null;
 
 	let roundPool = $state<typeof data.movies>([]);
 	let roundSize = $state(0);
@@ -154,26 +154,47 @@
 		);
 		seq.push(pick);
 		sequence = seq;
-
-		// Snap back to the top with no transition before animating down again,
-		// otherwise re-spinning would smoothly (and near-invisibly) ease from
-		// wherever the reel stopped last time instead of doing a full spin.
-		// A double requestAnimationFrame used to gate the follow-up state
-		// change, but that's a race: Svelte's DOM-patch schedule and the
-		// browser's paint schedule aren't guaranteed to line up, so the reset
-		// sometimes never actually painted before the target position was
-		// applied — the reel would silently skip the animation and land
-		// instantly. tick() waits for Svelte to commit the reset to the DOM,
-		// then reading offsetHeight forces the browser to synchronously
-		// compute layout for it, so there's a real "before" state on the
-		// page for the transition to animate from — no timing luck involved.
-		transitionMs = 0;
 		translateY = 0;
-		await tick();
-		void reelWrapperEl?.offsetHeight;
 
-		transitionMs = transitionDurationFor(roundSize);
-		translateY = -(seq.length - 1) * ITEM_HEIGHT;
+		// wait for the reel wrapper to exist in the DOM (first spin only —
+		// it's gated behind {#if sequence.length}).
+		await tick();
+		if (!reelWrapperEl) return;
+
+		// A CSS transition driven by mutating a `transform` style property
+		// used to do this, reset-then-retarget with a forced reflow in
+		// between. That's fundamentally unreliable for `transform`: it's a
+		// compositor-only property, so forcing a *layout* reflow via
+		// offsetHeight doesn't guarantee the reset value was actually
+		// committed to the compositor before the target value overwrote it
+		// — and heavy main-thread activity (like an active scroll gesture)
+		// makes that race far more likely to lose. The Web Animations API
+		// sidesteps the whole class of bug: each call defines its own
+		// explicit start and end keyframes, so there's no "previous state"
+		// to race against — the animation always starts exactly at
+		// translateY(0) the instant it begins playing, regardless of
+		// whatever the element's resting style currently is.
+		currentAnimation?.cancel();
+		const targetY = -(seq.length - 1) * ITEM_HEIGHT;
+		const animation = reelWrapperEl.animate(
+			[{ transform: 'translateY(0px)' }, { transform: `translateY(${targetY}px)` }],
+			{
+				duration: transitionDurationFor(roundSize),
+				easing: 'cubic-bezier(0.1, 0.7, 0.2, 1)',
+				fill: 'forwards'
+			}
+		);
+		currentAnimation = animation;
+
+		try {
+			await animation.finished;
+		} catch {
+			// cancelled by a follow-up spin — that spin owns onSpinComplete.
+			return;
+		}
+		if (currentAnimation !== animation) return;
+		translateY = targetY;
+		onSpinComplete();
 	}
 
 	function addPlayer() {
@@ -311,6 +332,8 @@
 			clearTimeout(pendingSpinTimeout);
 			pendingSpinTimeout = null;
 		}
+		currentAnimation?.cancel();
+		currentAnimation = null;
 		spinning = false;
 		roundSize = 0;
 		spinsRemaining = 0;
@@ -325,7 +348,7 @@
 		roundNarration = '';
 	}
 
-	function onTransitionEnd() {
+	function onSpinComplete() {
 		if (!spinning) return;
 		spinning = false;
 
@@ -400,12 +423,7 @@
 			></div>
 
 			{#if sequence.length}
-				<div
-					bind:this={reelWrapperEl}
-					class="transition-transform ease-[cubic-bezier(0.1,0.7,0.2,1)]"
-					style="transform: translateY({translateY}px); transition-duration: {transitionMs}ms;"
-					ontransitionend={onTransitionEnd}
-				>
+				<div bind:this={reelWrapperEl} style="transform: translateY({translateY}px);">
 					{#each sequence as item, i (i)}
 						<a
 							href="/movie/{item.id}"
