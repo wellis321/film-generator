@@ -113,8 +113,12 @@
 		32: 'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center',
 		64: 'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center'
 	};
+	// During a continuing round the gallery still shows the *previous*
+	// round's full field until it's trimmed down at the end, so the layout
+	// has to fit whichever is bigger — the field on screen right now, or
+	// this round's target — not just the target on its own.
 	const galleryGridClass = $derived(
-		galleryGridClasses[totalInBatch] ??
+		galleryGridClasses[Math.max(results.length, totalInBatch)] ??
 			'grid-cols-[repeat(4,minmax(0,90px))] sm:grid-cols-[repeat(8,minmax(0,100px))] justify-center'
 	);
 	const needsClaiming = $derived(roundComplete && players.length > 0 && !claimsCollected);
