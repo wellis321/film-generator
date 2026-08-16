@@ -16,6 +16,7 @@
 	} from '$lib/player-quips';
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
+	import { fly } from 'svelte/transition';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -431,7 +432,10 @@
 {/snippet}
 
 {#snippet championCard(c: { movie: (typeof data.movies)[number]; quip: string })}
-	<div class="mx-auto mt-8 max-w-xs text-center">
+	<div
+		class="mx-auto mt-8 max-w-xs text-center"
+		in:fly={{ y: 12, duration: 400, delay: 100 }}
+	>
 		<a href="/movie/{c.movie.id}" class="group block">
 			{#if posterUrl(c.movie.posterPath, 'w500')}
 				<img
