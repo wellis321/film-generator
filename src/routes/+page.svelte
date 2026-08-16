@@ -16,7 +16,7 @@
 	} from '$lib/player-quips';
 	import { page } from '$app/state';
 	import { invalidateAll } from '$app/navigation';
-	import { fly } from 'svelte/transition';
+	import { fly, fade } from 'svelte/transition';
 	import { tick } from 'svelte';
 	import type { PageData } from './$types';
 
@@ -47,6 +47,13 @@
 	let currentAnimation: Animation | null = null;
 
 	let roundPool = $state<typeof data.movies>([]);
+	// True only for a bracket's very first round, where the pool is too big
+	// to display up front, so results build up as a fresh gallery one spin
+	// at a time. Every later round narrows an *already-displayed* field, so
+	// instead of clearing and rebuilding, we mark landed picks in place and
+	// only cut the field down to survivors once the round finishes.
+	let buildingFresh = $state(true);
+	let pickedIds = $state<Set<number>>(new Set());
 	let roundSize = $state(0);
 	let spinsRemaining = $state(0);
 	let totalInBatch = $state(0);
@@ -144,8 +151,7 @@
 	async function runSpin() {
 		spinning = true;
 
-		const excludeIds = new Set(results.map((r) => r.movie.id));
-		const pick = pickFromRoundPool(excludeIds);
+		const pick = pickFromRoundPool(pickedIds);
 
 		const reelLength = 26;
 		const seq = Array.from(
@@ -297,11 +303,13 @@
 		return { currentlySurviving, newlyEliminated };
 	}
 
-	function beginRound(size: number) {
+	function beginRound(size: number, fresh: boolean) {
 		roundSize = size;
 		totalInBatch = size;
 		spinsRemaining = size;
-		results = [];
+		buildingFresh = fresh;
+		pickedIds = new Set();
+		if (fresh) results = [];
 		closingQuip = '';
 		roundNarration = '';
 		runSpin();
@@ -315,13 +323,15 @@
 		// Anything bigger than a single spin runs inside the bracket dialog;
 		// a plain single spin plays right there on the page, no dialog at all.
 		if (size > 1) dialogEl.showModal();
-		beginRound(size);
+		beginRound(size, true);
 	}
 
 	function continueBracket() {
 		if (bracketActive || nextRoundSize === 0) return;
 		roundPool = results.map((r) => r.movie);
-		beginRound(nextRoundSize);
+		// Not fresh: the gallery already shows this exact field, so the next
+		// round marks landed picks in place instead of rebuilding it.
+		beginRound(nextRoundSize, false);
 	}
 
 	// Fires on every dialog close, however it happened — the ✕ button,
@@ -339,6 +349,8 @@
 		spinsRemaining = 0;
 		champion = null;
 		results = [];
+		buildingFresh = true;
+		pickedIds = new Set();
 		closingQuip = '';
 		sequence = [];
 		claims = new Map();
@@ -353,7 +365,11 @@
 		spinning = false;
 
 		const landed = sequence[sequence.length - 1];
-		results = [...results, { movie: landed, quip: randomReaction() }];
+		pickedIds.add(landed.id);
+		pickedIds = new Set(pickedIds);
+		if (buildingFresh) {
+			results = [...results, { movie: landed, quip: randomReaction() }];
+		}
 		spinsRemaining -= 1;
 
 		if (spinsRemaining > 0) {
@@ -362,6 +378,12 @@
 				runSpin();
 			}, pauseDurationFor(roundSize));
 			return;
+		}
+
+		// Round's decided — cut the field down to just the survivors, all at
+		// once, rather than the gallery having been rebuilt tile-by-tile.
+		if (!buildingFresh) {
+			results = results.filter((r) => pickedIds.has(r.movie.id));
 		}
 
 		const trackingPlayers = claimsCollected && claims.size > 0;
@@ -765,6 +787,7 @@
 
 					{#snippet resultThumb(result: (typeof results)[number])}
 						{@const owner = claims.get(result.movie.id)}
+						{@const locked = !buildingFresh && bracketActive && pickedIds.has(result.movie.id)}
 						{#if owner !== undefined}
 							<span
 								class="absolute -top-1.5 -right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold {playerColors[
@@ -773,24 +796,36 @@
 							>
 								{playerNames[owner]?.[0] ?? '?'}
 							</span>
+						{:else if locked}
+							<span
+								class="absolute -top-1.5 -right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-neutral-950"
+							>
+								✓
+							</span>
 						{/if}
 						{#if posterUrl(result.movie.posterPath)}
 							<img
 								src={posterUrl(result.movie.posterPath)}
 								alt=""
-								class="w-full rounded-lg object-cover shadow-md transition group-hover:opacity-80 {owner !==
+								class="w-full rounded-lg object-cover shadow-md transition duration-300 group-hover:opacity-80 {owner !==
 								undefined
 									? `ring-2 ${playerColors[owner % playerColors.length].ring}`
-									: ''}"
+									: ''} {locked ? 'opacity-40 grayscale' : ''}"
 							/>
 						{:else}
 							<div
-								class="flex aspect-[2/3] items-center justify-center rounded-lg bg-neutral-800 text-xl"
+								class="flex aspect-[2/3] items-center justify-center rounded-lg bg-neutral-800 text-xl transition duration-300 {locked
+									? 'opacity-40 grayscale'
+									: ''}"
 							>
 								🎬
 							</div>
 						{/if}
-						<p class="mt-1 truncate text-xs font-medium text-neutral-300">
+						<p
+							class="mt-1 truncate text-xs font-medium transition duration-300 {locked
+								? 'text-neutral-600'
+								: 'text-neutral-300'}"
+						>
 							{result.movie.title}
 						</p>
 					{/snippet}
@@ -803,6 +838,7 @@
 									onclick={() => claimMovie(result.movie.id)}
 									class="group relative block text-left"
 									title={result.movie.title}
+									out:fade={{ duration: 300 }}
 								>
 									{@render resultThumb(result)}
 								</button>
@@ -811,6 +847,7 @@
 									href="/movie/{result.movie.id}"
 									class="group relative block text-left"
 									title={result.movie.title}
+									out:fade={{ duration: 300 }}
 								>
 									{@render resultThumb(result)}
 								</a>
