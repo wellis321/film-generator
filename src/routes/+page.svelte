@@ -31,7 +31,7 @@
 		return unwatched.length > 0 ? unwatched : data.movies;
 	});
 
-	let selectedBracketSize = $state<number>(16);
+	let selectedBracketSize = $state<number>(1);
 	let dialogEl: HTMLDialogElement;
 	let scrollContainer: HTMLDivElement;
 
@@ -381,6 +381,16 @@
 		</p>
 	{:else}
 		<div class="mx-auto mt-10 flex max-w-lg flex-wrap justify-center gap-2">
+			<button
+				type="button"
+				onclick={() => (selectedBracketSize = 1)}
+				class="rounded-full border px-4 py-1.5 text-sm font-medium transition {selectedBracketSize ===
+				1
+					? 'border-amber-400 bg-amber-400/10 text-amber-400'
+					: 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}"
+			>
+				Just Spin
+			</button>
 			{#each bracketSizes as size (size)}
 				<button
 					type="button"
