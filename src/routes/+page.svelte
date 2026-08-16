@@ -169,6 +169,23 @@
 			() => roundPool[Math.floor(Math.random() * roundPool.length)]
 		);
 		seq.push(pick);
+
+		// With a small pool (a Decider round is down to just 2 movies) plain
+		// per-slot randomness has roughly even odds of leaving the winner
+		// already sitting in view for the last stretch before landing — the
+		// slow ease-out gives a long, readable look at it, so it can feel
+		// like there was never really a choice. Force the last couple of
+		// slots to show something other than the pick, so the reel always
+		// has a genuine last-moment flip into the result rather than just
+		// easing to a stop on what you'd already been staring at.
+		const tailStart = Math.max(0, seq.length - 3);
+		for (let i = tailStart; i < seq.length - 1; i++) {
+			if (seq[i].id === pick.id) {
+				const alt = roundPool.filter((m) => m.id !== pick.id);
+				if (alt.length > 0) seq[i] = alt[Math.floor(Math.random() * alt.length)];
+			}
+		}
+
 		sequence = seq;
 		translateY = 0;
 
