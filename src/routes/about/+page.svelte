@@ -10,6 +10,47 @@
 	const FADE_MS = 350;
 	const WAVE_INTERVAL_MS = 15000;
 
+	// Each gripe links to the film it's actually about, but the id is the
+	// only place that's said out loud — the text itself stays coy on purpose.
+	const thingsWeDontUnderstand = [
+		{
+			movieId: 9,
+			text: 'Vampires who can suddenly stroll around in broad daylight. Rules, it turns out, are optional.'
+		},
+		{
+			movieId: 163,
+			text: 'If you can trap someone in an endless simulated train, why not just... leave them there? Seems tidier.'
+		},
+		{
+			movieId: 3,
+			text: 'Did Harry Potter just try to kill his own aunt, and did anyone else notice nobody mentioned it again?'
+		},
+		{
+			movieId: 2,
+			text: 'You can apparently just drive a car to Hogwarts. So what, precisely, was the point of the wall at the train station?'
+		},
+		{
+			movieId: 20,
+			text: 'We are not touching the Wolverine timeline. Nobody is touching the Wolverine timeline.'
+		},
+		{
+			movieId: 55,
+			text: 'Was that entire superhero team-up filmed in one room? It certainly looked like it.'
+		},
+		{
+			movieId: 24,
+			text: 'A hyperdrive that has failed at the worst possible moment for roughly fifty years running.'
+		},
+		{
+			movieId: 143,
+			text: 'A state-of-the-art dinosaur cloning facility with, it turns out, one unreliable fence.'
+		},
+		{
+			movieId: 410,
+			text: 'Parents who somehow board an international flight without noticing a missing child.'
+		}
+	];
+
 	let pool = $state(shuffle(data.posters));
 	let cells = $state(pool.slice(0, 12));
 	let poolIndex = $state(12);
@@ -76,10 +117,10 @@
 		</p>
 
 		<p class="leading-relaxed">
-			So if you've ever sat through a beloved classic wondering when the plot was going to make
-			an appearance, or quietly thought <em>"is it me? Maybe there's something wrong with me"</em> while
-			everyone around you wept with joy — welcome. No malice here, just a family with a wheel and
-			a stubborn refusal to pretend we felt something we didn't.
+			So if you've ever sat through a beloved classic wondering when the plot was going to make an
+			appearance, or quietly thought <em>"is it me? Maybe there's something wrong with me"</em> while
+			everyone around you wept with joy — welcome. No malice here, just a family with a wheel and a stubborn
+			refusal to pretend we felt something we didn't.
 		</p>
 
 		<div>
@@ -87,63 +128,17 @@
 				A short, ongoing list of things we don't understand
 			</h2>
 			<ul class="mt-4 space-y-3">
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span
-						>Vampires who can suddenly stroll around in broad daylight. Rules, it turns out, are
-						optional.</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span
-						>If you can trap someone in an endless simulated train, why not just... leave them
-						there? Seems tidier.</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span
-						>Did Harry Potter just try to kill his own aunt, and did anyone else notice nobody
-						mentioned it again?</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span
-						>You can apparently just drive a car to Hogwarts. So what, precisely, was the point of
-						the wall at the train station?</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span>We are not touching the Wolverine timeline. Nobody is touching the Wolverine timeline.</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span>Was that entire superhero team-up filmed in one room? It certainly looked like it.</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span
-						>A hyperdrive that has failed at the worst possible moment for roughly fifty years
-						running.</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span
-						>A state-of-the-art dinosaur cloning facility with, it turns out, one unreliable
-						fence.</span
-					>
-				</li>
-				<li class="flex gap-3">
-					<span class="text-amber-400">—</span>
-					<span>Parents who somehow board an international flight without noticing a missing child.</span
-					>
-				</li>
+				{#each thingsWeDontUnderstand as thing (thing.movieId)}
+					<li class="flex gap-3">
+						<span class="text-amber-400">—</span>
+						<a
+							href="/movie/{thing.movieId}"
+							class="underline decoration-neutral-700 decoration-dotted underline-offset-4 transition hover:text-amber-400 hover:decoration-amber-400"
+						>
+							{thing.text}
+						</a>
+					</li>
+				{/each}
 			</ul>
 			<p class="mt-4 text-sm text-neutral-500">This list will, unfortunately, keep growing.</p>
 		</div>
@@ -165,7 +160,7 @@
 				{#each cells as cell, i (i)}
 					<a
 						href="/movie/{cell.id}"
-						class="block overflow-hidden rounded-lg shadow-lg transition duration-200 hover:z-10 hover:rotate-0 hover:scale-110"
+						class="block overflow-hidden rounded-lg shadow-lg transition duration-200 hover:z-10 hover:scale-110 hover:rotate-0"
 						style="rotate: {rotations[i % rotations.length]}deg;"
 					>
 						<img
