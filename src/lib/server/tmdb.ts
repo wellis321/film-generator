@@ -48,14 +48,72 @@ export async function searchTmdb(
 		);
 	const normalize = (s: string) => s.trim().toLowerCase();
 	const exactMatches = results.filter((r) => normalize(nameOf(r)) === normalize(query));
-	const exactMatchForYear = yearHint
-		? exactMatches.find((r) => yearOf(r) === yearHint)
-		: undefined;
+	const exactMatchForYear = yearHint ? exactMatches.find((r) => yearOf(r) === yearHint) : undefined;
 	const best =
 		exactMatchForYear ??
 		exactMatches[0] ??
 		results.reduce((a, b) => ((b.vote_count ?? 0) > (a.vote_count ?? 0) ? b : a));
 
+	return {
+		tmdbId: best.id,
+		title: mediaType === 'movie' ? best.title : best.name,
+		year: (mediaType === 'movie' ? best.release_date : best.first_air_date)?.slice(0, 4) || null,
+		posterPath: best.poster_path,
+		synopsis: best.overview || '',
+		tmdbRating: best.vote_average?.toFixed(1) ?? '0',
+		tmdbVoteCount: best.vote_count ?? 0
+	};
+}
+
+export type TmdbSearchHit = {
+	tmdbId: number;
+	mediaType: MediaType;
+	title: string;
+	year: string | null;
+	posterPath: string | null;
+};
+
+// Powers the "add your own pick" search box — unlike searchTmdb (which picks
+// one best match for a known title), this returns several candidates across
+// both movies and TV for the user to pick from themselves.
+export async function searchTmdbMulti(apiKey: string, query: string): Promise<TmdbSearchHit[]> {
+	const params = new URLSearchParams({ query });
+	const res = await fetch(`${TMDB_API}/search/multi?${params}`, {
+		headers: { Authorization: `Bearer ${apiKey}`, accept: 'application/json' }
+	});
+	if (!res.ok) throw new Error(`TMDB search failed for "${query}": ${res.status}`);
+
+	const data = await res.json();
+	const results: any[] = data.results ?? [];
+	return results
+		.filter((r) => r.media_type === 'movie' || r.media_type === 'tv')
+		.slice(0, 8)
+		.map((r) => ({
+			tmdbId: r.id,
+			mediaType: r.media_type as MediaType,
+			title: r.media_type === 'movie' ? r.title : r.name,
+			year:
+				(
+					(r.media_type === 'movie' ? r.release_date : r.first_air_date) as string | undefined
+				)?.slice(0, 4) || null,
+			posterPath: r.poster_path ?? null
+		}));
+}
+
+// Looks a title up by its known TMDB id rather than searching by name —
+// used once the user has picked an exact result from searchTmdbMulti, so we
+// fetch its full details straight from TMDB before inserting it.
+export async function fetchTmdbById(
+	apiKey: string,
+	tmdbId: number,
+	mediaType: MediaType
+): Promise<TmdbResult> {
+	const res = await fetch(`${TMDB_API}/${mediaType}/${tmdbId}`, {
+		headers: { Authorization: `Bearer ${apiKey}`, accept: 'application/json' }
+	});
+	if (!res.ok) throw new Error(`TMDB details fetch failed for id ${tmdbId}: ${res.status}`);
+
+	const best = await res.json();
 	return {
 		tmdbId: best.id,
 		title: mediaType === 'movie' ? best.title : best.name,

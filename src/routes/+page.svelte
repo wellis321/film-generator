@@ -36,7 +36,99 @@
 	// Defaults to the plain single-spin experience. Bracket sizes > 1 and the
 	// "who's picking" layer only become reachable via "More options" below.
 	let selectedBracketSize = $state<number>(1);
+
+	type MovieSearchHit = {
+		tmdbId: number;
+		mediaType: 'movie' | 'tv';
+		title: string;
+		year: string | null;
+		posterPath: string | null;
+	};
+
+	// User-chosen titles that are guaranteed a slot in the next spin/bracket,
+	// on top of the usual random pool. Searched live against TMDB rather than
+	// just the seeded catalog, so any title is reachable.
+	let manualPicks = $state<typeof data.movies>([]);
+	let movieSearchQuery = $state('');
+	let movieSearchResults = $state<MovieSearchHit[]>([]);
+	let searchingMovies = $state(false);
+	let addingTmdbId = $state<number | null>(null);
+	let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+	// A manual pick guarantees a slot in the round, so it can't outnumber the
+	// slots on offer — trim automatically if the user shrinks the round size
+	// below what they'd already added.
+	$effect(() => {
+		if (manualPicks.length > selectedBracketSize) {
+			manualPicks = manualPicks.slice(0, selectedBracketSize);
+		}
+	});
+
+	const mergedPool = $derived.by(() => {
+		if (manualPicks.length === 0) return fullPool;
+		const extra = manualPicks.filter((m) => !fullPool.some((fm) => fm.id === m.id));
+		return extra.length > 0 ? [...fullPool, ...extra] : fullPool;
+	});
+
+	function scheduleMovieSearch(q: string) {
+		movieSearchQuery = q;
+		if (searchDebounce) clearTimeout(searchDebounce);
+		if (q.trim().length < 2) {
+			movieSearchResults = [];
+			return;
+		}
+		searchDebounce = setTimeout(async () => {
+			searchingMovies = true;
+			try {
+				const res = await fetch(`/api/movies?q=${encodeURIComponent(q.trim())}`);
+				movieSearchResults = res.ok ? await res.json() : [];
+			} finally {
+				searchingMovies = false;
+			}
+		}, 300);
+	}
+
+	async function addManualPick(hit: MovieSearchHit) {
+		if (manualPicks.length >= selectedBracketSize || addingTmdbId !== null) return;
+		addingTmdbId = hit.tmdbId;
+		try {
+			const res = await fetch('/api/movies', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ tmdbId: hit.tmdbId, mediaType: hit.mediaType })
+			});
+			if (!res.ok) return;
+			const added = await res.json();
+			if (!manualPicks.some((m) => m.id === added.id)) {
+				manualPicks = [...manualPicks, added];
+			}
+			movieSearchQuery = '';
+			movieSearchResults = [];
+		} finally {
+			addingTmdbId = null;
+		}
+	}
+
+	function removeManualPick(id: number) {
+		manualPicks = manualPicks.filter((m) => m.id !== id);
+	}
+
+	function shuffled<T>(items: T[]) {
+		const arr = items.slice();
+		for (let i = arr.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[arr[i], arr[j]] = [arr[j], arr[i]];
+		}
+		return arr;
+	}
+
 	let showAdvancedOptions = $state(false);
+	// Tracks whether the *current* spin/bracket is playing out in the dialog,
+	// independent of selectedBracketSize — a forced two-way contest (see
+	// startBracket) runs in the dialog even though the size pill still reads
+	// "Just Spin", and a real bracket's last, single-survivor round must NOT
+	// fall back to the plain on-page reel just because its roundSize is 1.
+	let dialogMode = $state(false);
 	let dialogEl: HTMLDialogElement;
 	let scrollContainer: HTMLDivElement;
 	let reelWrapperEl: HTMLDivElement | undefined;
@@ -47,6 +139,10 @@
 	let currentAnimation: Animation | null = null;
 
 	let roundPool = $state<typeof data.movies>([]);
+	// Manual picks queued to fill the next spins in a fresh round, drained one
+	// per spin ahead of the usual random draw — guarantees they land somewhere
+	// without pinning them to a particular slot.
+	let guaranteedQueue = $state<typeof data.movies>([]);
 	// True only for a bracket's very first round, where the pool is too big
 	// to display up front, so results build up as a fresh gallery one spin
 	// at a time. Every later round narrows an *already-displayed* field, so
@@ -152,6 +248,11 @@
 	}
 
 	function pickFromRoundPool(excludeIds: Set<number>) {
+		if (guaranteedQueue.length > 0) {
+			const [next, ...rest] = guaranteedQueue;
+			guaranteedQueue = rest;
+			return next;
+		}
 		const candidates = roundPool.filter((m) => !excludeIds.has(m.id));
 		const source = candidates.length > 0 ? candidates : roundPool;
 		return source[Math.floor(Math.random() * source.length)];
@@ -344,13 +445,20 @@
 	}
 
 	function startBracket() {
-		if (bracketActive || fullPool.length === 0) return;
+		if (bracketActive || mergedPool.length === 0) return;
 		champion = null;
-		roundPool = fullPool;
-		const size = Math.min(selectedBracketSize, fullPool.length);
+		roundPool = mergedPool;
+		// A manual pick guarantees a slot, but a "Just Spin" round only has one
+		// slot to begin with — guaranteeing it there would make the spin a
+		// foregone conclusion instead of a real contest. Bump it to a two-way
+		// Decider round so it's always up against something.
+		const wantsSize = manualPicks.length > 0 && selectedBracketSize === 1 ? 2 : selectedBracketSize;
+		const size = Math.min(wantsSize, mergedPool.length);
+		guaranteedQueue = shuffled(manualPicks.slice(0, size));
 		// Anything bigger than a single spin runs inside the bracket dialog;
 		// a plain single spin plays right there on the page, no dialog at all.
-		if (size > 1) dialogEl.showModal();
+		dialogMode = size > 1;
+		if (dialogMode) dialogEl.showModal();
 		beginRound(size, true);
 	}
 
@@ -373,6 +481,7 @@
 		currentAnimation?.cancel();
 		currentAnimation = null;
 		spinning = false;
+		dialogMode = false;
 		roundSize = 0;
 		spinsRemaining = 0;
 		spinNumber = 0;
@@ -380,6 +489,7 @@
 		results = [];
 		buildingFresh = true;
 		pickedIds = new Set();
+		guaranteedQueue = [];
 		closingQuip = '';
 		sequence = [];
 		claims = new Map();
@@ -519,10 +629,7 @@
 {/snippet}
 
 {#snippet championCard(c: { movie: (typeof data.movies)[number]; quip: string })}
-	<div
-		class="mx-auto mt-8 max-w-xs text-center"
-		in:fly={{ y: 12, duration: 400, delay: 100 }}
-	>
+	<div class="mx-auto mt-8 max-w-xs text-center" in:fly={{ y: 12, duration: 400, delay: 100 }}>
 		<a href="/movie/{c.movie.id}" class="group block">
 			{#if posterUrl(c.movie.posterPath, 'w500')}
 				<img
@@ -589,7 +696,7 @@
 			No movies in the pool yet — run <code class="text-amber-400">npm run db:seed</code> to load some.
 		</p>
 	{:else}
-		{#if selectedBracketSize === 1}
+		{#if !dialogMode}
 			{@render reelBox()}
 		{/if}
 
@@ -599,15 +706,11 @@
 				disabled={bracketActive}
 				class="rounded-full bg-amber-400 px-8 py-3 text-lg font-bold text-neutral-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				{bracketActive
-					? 'Spinning…'
-					: selectedBracketSize === 1 && champion
-						? newBracketLabel
-						: 'Spin the wheel'}
+				{bracketActive ? 'Spinning…' : !dialogMode && champion ? newBracketLabel : 'Spin the wheel'}
 			</button>
 		</div>
 
-		{#if selectedBracketSize === 1 && champion}
+		{#if !dialogMode && champion}
 			{@render spinResult(champion)}
 		{/if}
 
@@ -657,6 +760,99 @@
 							{bracketSizeLabels[size]} ({size})
 						</button>
 					{/each}
+				</div>
+
+				<div class="mx-auto mt-4 max-w-md text-left">
+					<p class="text-sm text-neutral-500">
+						Add your own picks
+						<span class="text-neutral-600">(optional — guarantees a slot in the spin)</span>
+					</p>
+					{#if !user}
+						<p class="mt-0.5 text-xs text-neutral-600">
+							<a href="/login" class="text-amber-400/80 hover:underline">Log in</a> to add specific titles.
+						</p>
+					{:else}
+						<div class="relative mt-2">
+							<input
+								type="text"
+								value={movieSearchQuery}
+								oninput={(e) => scheduleMovieSearch(e.currentTarget.value)}
+								disabled={bracketActive || manualPicks.length >= selectedBracketSize}
+								placeholder={manualPicks.length >= selectedBracketSize
+									? `Max ${selectedBracketSize} reached`
+									: 'Search for a movie or show…'}
+								class="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-amber-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+							/>
+							{#if movieSearchQuery.trim().length >= 2}
+								<div
+									class="absolute z-30 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-neutral-700 bg-neutral-900 shadow-xl"
+								>
+									{#if searchingMovies}
+										<p class="px-3 py-2 text-sm text-neutral-500">Searching…</p>
+									{:else if movieSearchResults.length === 0}
+										<p class="px-3 py-2 text-sm text-neutral-500">No matches.</p>
+									{:else}
+										{#each movieSearchResults as hit (hit.mediaType + hit.tmdbId)}
+											<button
+												type="button"
+												onclick={() => addManualPick(hit)}
+												disabled={addingTmdbId === hit.tmdbId}
+												class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition hover:bg-neutral-800 disabled:opacity-50"
+											>
+												{#if posterUrl(hit.posterPath)}
+													<img
+														src={posterUrl(hit.posterPath)}
+														alt=""
+														class="h-10 w-7 flex-shrink-0 rounded object-cover"
+													/>
+												{:else}
+													<div
+														class="flex h-10 w-7 flex-shrink-0 items-center justify-center rounded bg-neutral-800 text-xs"
+													>
+														🎬
+													</div>
+												{/if}
+												<span class="min-w-0 truncate text-neutral-200">
+													{hit.title}
+													{#if hit.year}<span class="text-neutral-500">({hit.year})</span>{/if}
+													{#if hit.mediaType === 'tv'}<span class="text-neutral-600">
+															· TV</span
+														>{/if}
+												</span>
+											</button>
+										{/each}
+									{/if}
+								</div>
+							{/if}
+						</div>
+					{/if}
+
+					{#if manualPicks.length > 0}
+						<div class="mt-2 flex flex-wrap gap-2">
+							{#each manualPicks as pick (pick.id)}
+								<span
+									class="flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 py-1 pr-2 pl-1 text-xs text-amber-200"
+								>
+									{#if posterUrl(pick.posterPath)}
+										<img
+											src={posterUrl(pick.posterPath)}
+											alt=""
+											class="h-5 w-5 rounded-full object-cover"
+										/>
+									{/if}
+									{pick.title}
+									<button
+										type="button"
+										onclick={() => removeManualPick(pick.id)}
+										aria-label="Remove {pick.title}"
+										class="text-amber-400/70 transition hover:text-amber-200"
+									>
+										✕
+									</button>
+								</span>
+							{/each}
+						</div>
+					{/if}
 				</div>
 
 				{#if selectedBracketSize > 1}
@@ -742,7 +938,7 @@
 	onclose={onDialogClose}
 	class="mx-auto mt-6 mb-auto w-[95vw] max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 p-0 text-neutral-100 backdrop:bg-black/70 backdrop:backdrop-blur-sm sm:mt-10 sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl"
 >
-	{#if selectedBracketSize > 1}
+	{#if dialogMode}
 		<div bind:this={scrollContainer} class="max-h-[85vh] overflow-y-auto p-4 sm:p-6 lg:p-8">
 			<div class="flex items-start justify-between gap-4">
 				<p class="text-sm font-semibold tracking-wide text-amber-400 uppercase">
