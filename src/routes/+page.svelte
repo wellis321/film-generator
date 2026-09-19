@@ -139,10 +139,12 @@
 	let currentAnimation: Animation | null = null;
 
 	let roundPool = $state<typeof data.movies>([]);
-	// Manual picks queued to fill the next spins in a fresh round, drained one
-	// per spin ahead of the usual random draw — guarantees they land somewhere
-	// without pinning them to a particular slot.
-	let guaranteedQueue = $state<typeof data.movies>([]);
+	// Manual picks for the fresh round, each assigned a random spin index
+	// up front (see startBracket) rather than always landing on spin 1 —
+	// otherwise "guaranteed a slot" would really mean "guaranteed to be the
+	// very first result", which gives the game away instead of looking like
+	// a real draw from the pool.
+	let guaranteedSlots = new Map<number, (typeof data.movies)[number]>();
 	// True only for a bracket's very first round, where the pool is too big
 	// to display up front, so results build up as a fresh gallery one spin
 	// at a time. Every later round narrows an *already-displayed* field, so
@@ -247,14 +249,21 @@
 		return 450;
 	}
 
-	function pickFromRoundPool(excludeIds: Set<number>) {
-		if (guaranteedQueue.length > 0) {
-			const [next, ...rest] = guaranteedQueue;
-			guaranteedQueue = rest;
-			return next;
+	function pickFromRoundPool(excludeIds: Set<number>, slotIndex: number) {
+		const guaranteed = guaranteedSlots.get(slotIndex);
+		if (guaranteed) {
+			guaranteedSlots.delete(slotIndex);
+			return guaranteed;
 		}
-		const candidates = roundPool.filter((m) => !excludeIds.has(m.id));
-		const source = candidates.length > 0 ? candidates : roundPool;
+		// A movie reserved for a later guaranteed slot must not also be
+		// eligible to land early by sheer luck — that would either duplicate
+		// it in the results or make its "guaranteed" slot redundant.
+		const reserved = new Set(excludeIds);
+		for (const m of guaranteedSlots.values()) reserved.add(m.id);
+		const candidates = roundPool.filter((m) => !reserved.has(m.id));
+		if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
+		const fallback = roundPool.filter((m) => !excludeIds.has(m.id));
+		const source = fallback.length > 0 ? fallback : roundPool;
 		return source[Math.floor(Math.random() * source.length)];
 	}
 
@@ -262,7 +271,7 @@
 		spinning = true;
 		spinNumber += 1;
 
-		const pick = pickFromRoundPool(pickedIds);
+		const pick = pickFromRoundPool(pickedIds, spinNumber - 1);
 
 		const reelLength = 26;
 		const seq = Array.from(
@@ -454,7 +463,12 @@
 		// Decider round so it's always up against something.
 		const wantsSize = manualPicks.length > 0 && selectedBracketSize === 1 ? 2 : selectedBracketSize;
 		const size = Math.min(wantsSize, mergedPool.length);
-		guaranteedQueue = shuffled(manualPicks.slice(0, size));
+		const guaranteedMovies = manualPicks.slice(0, size);
+		const slots = shuffled(Array.from({ length: size }, (_, i) => i)).slice(
+			0,
+			guaranteedMovies.length
+		);
+		guaranteedSlots = new Map(slots.map((slot, i) => [slot, guaranteedMovies[i]]));
 		// Anything bigger than a single spin runs inside the bracket dialog;
 		// a plain single spin plays right there on the page, no dialog at all.
 		dialogMode = size > 1;
@@ -489,7 +503,7 @@
 		results = [];
 		buildingFresh = true;
 		pickedIds = new Set();
-		guaranteedQueue = [];
+		guaranteedSlots = new Map();
 		closingQuip = '';
 		sequence = [];
 		claims = new Map();
